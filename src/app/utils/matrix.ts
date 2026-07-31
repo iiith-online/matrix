@@ -298,7 +298,7 @@ export const mxcUrlToHttp = (
 
 export const downloadMedia = async (src: string): Promise<Blob> => {
   // this request is authenticated by service worker
-  const res = await fetch(src, { method: 'GET' });
+  const res = await fetch(src, { method: 'GET', cache: 'no-store' });
   const blob = await res.blob();
   return blob;
 };

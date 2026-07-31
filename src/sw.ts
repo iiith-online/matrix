@@ -237,7 +237,7 @@ function fetchConfig(token: string): RequestInit {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    cache: 'default',
+    cache: 'no-store',
   };
 }
 
@@ -282,7 +282,7 @@ self.addEventListener('fetch', (event: FetchEvent) => {
       if (s && validMediaRequest(url, s.baseUrl)) {
         return fetch(url, fetchConfig(s.accessToken));
       }
-      return fetch(event.request);
+      return fetch(event.request, { cache: 'no-store' });
     })
   );
 });
