@@ -1985,6 +1985,10 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
               </>
             ))}
 
+          {!isFetching && (canPaginateBack || !rangeAtStart) && (
+            <span ref={observeBackAnchor} aria-hidden="true" style={{ display: 'block', height: 1 }} />
+          )}
+
           {getItems().map(eventRenderer)}
 
           {!isCheckingRoom && !isFetching && eventsLength === 0 && !timelineError && (
@@ -1993,6 +1997,10 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
                 No messages yet.
               </Text>
             </Box>
+          )}
+
+          {!isFetching && (!liveTimelineLinked || !rangeAtEnd) && (
+            <span ref={observeFrontAnchor} aria-hidden="true" style={{ display: 'block', height: 1 }} />
           )}
 
           {isFetching &&
