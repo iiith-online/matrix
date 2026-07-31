@@ -31,6 +31,7 @@ export type PushRegistration = {
   notifyUrl: string;
   clickBase: string;
   lastReconciledAt: number;
+  previewMode?: 'maximum' | 'private';
 };
 
 const apiUrl = (path: string) => new URL(path, window.location.origin).href;
@@ -143,7 +144,7 @@ export const enablePushNotifications = async (
   });
 
   const current = getPushRegistration();
-  const subscriptionBody = { subscription, clickBase, previewMode: 'private' };
+  const subscriptionBody = { subscription, clickBase, previewMode: 'maximum' };
   let gateway;
   try {
     gateway = await request<{ pushKey: string; managementToken: string }>(
@@ -180,6 +181,7 @@ export const enablePushNotifications = async (
     notifyUrl: config.notifyUrl,
     clickBase,
     lastReconciledAt: Date.now(),
+    previewMode: 'maximum',
   };
   try {
     await setHttpPusher(mx, registration);
@@ -223,11 +225,12 @@ export const reconcilePushNotifications = async (
   clickBase: string
 ): Promise<void> => {
   const registration = getPushRegistration();
+  const previewNeedsUpdate = registration?.previewMode !== 'maximum';
   if (
     !registration ||
     !pushSupported() ||
     Notification.permission !== 'granted' ||
-    Date.now() - registration.lastReconciledAt < RECONCILE_INTERVAL
+    (!previewNeedsUpdate && Date.now() - registration.lastReconciledAt < RECONCILE_INTERVAL)
   ) {
     return;
   }
@@ -236,7 +239,7 @@ export const reconcilePushNotifications = async (
   await gatewayRequest(registration, 'POST', {
     subscription,
     clickBase,
-    previewMode: 'private',
+    previewMode: 'maximum',
   });
   const { pushers } = await mx.getPushers();
   if (
@@ -246,5 +249,10 @@ export const reconcilePushNotifications = async (
   ) {
     await setHttpPusher(mx, registration);
   }
-  savePushRegistration({ ...registration, clickBase, lastReconciledAt: Date.now() });
+  savePushRegistration({
+    ...registration,
+    clickBase,
+    previewMode: 'maximum',
+    lastReconciledAt: Date.now(),
+  });
 };
