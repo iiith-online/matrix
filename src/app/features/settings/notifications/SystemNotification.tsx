@@ -106,6 +106,7 @@ export function SystemNotification() {
   const [pushStatus, setPushStatus] = useState<PushNotificationStatus>();
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState<string>();
+  const [pushNotice, setPushNotice] = useState<string>();
 
   const refreshPushStatus = useCallback(() => {
     getPushStatus()
@@ -129,6 +130,7 @@ export function SystemNotification() {
   const runPushAction = async (action: () => Promise<void>) => {
     setPushBusy(true);
     setPushError(undefined);
+    setPushNotice(undefined);
     try {
       await action();
       refreshPushStatus();
@@ -138,6 +140,12 @@ export function SystemNotification() {
       setPushBusy(false);
     }
   };
+
+  const sendTest = () =>
+    runPushAction(async () => {
+      await sendTestPushNotification();
+      setPushNotice('Test sent. Background the app to see the notification.');
+    });
 
   const pushDescription = {
     unsupported: 'Web Push is not supported here. On iPhone or iPad, install the app first.',
@@ -162,6 +170,12 @@ export function SystemNotification() {
           description={
             <span aria-live="polite">
               {pushDescription}
+              {pushNotice && (
+                <Text as="span" style={{ color: color.Success.Main }} size="T200">
+                  {' '}
+                  {pushNotice}
+                </Text>
+              )}
               {pushError && (
                 <Text as="span" style={{ color: color.Critical.Main }} size="T200">
                   {' '}
@@ -179,7 +193,7 @@ export function SystemNotification() {
                     size="300"
                     radii="300"
                     disabled={pushBusy}
-                    onClick={() => runPushAction(sendTestPushNotification)}
+                    onClick={sendTest}
                   >
                     <Text size="B300">Send test</Text>
                   </Button>

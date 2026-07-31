@@ -246,12 +246,19 @@ function PushNotificationReconciler() {
         reconcilePushNotifications(mx, getOriginBaseUrl(hashRouter)).catch(() => undefined);
       }
     };
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'pushSubscriptionChanged') {
+        reconcilePushNotifications(mx, getOriginBaseUrl(hashRouter), true).catch(() => undefined);
+      }
+    };
     reconcile();
     window.addEventListener('focus', reconcile);
     document.addEventListener('visibilitychange', reconcile);
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
     return () => {
       window.removeEventListener('focus', reconcile);
       document.removeEventListener('visibilitychange', reconcile);
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
     };
   }, [mx, hashRouter]);
 

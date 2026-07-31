@@ -335,6 +335,7 @@ const useTimelinePagination = (
   timelineRef.current = timeline;
   const alive = useAlive();
   const [isFetching, setIsFetching] = useState(false);
+  const [paginationError, setPaginationError] = useState(false);
 
   const handleTimelinePagination = useMemo(() => {
     let fetching = false;
@@ -389,6 +390,7 @@ const useTimelinePagination = (
 
       fetching = true;
       setIsFetching(true);
+      setPaginationError(false);
       try {
         const [err] = await to(
           mx.paginateEventTimeline(timelineToPaginate, {
@@ -396,7 +398,10 @@ const useTimelinePagination = (
             limit,
           })
         );
-        if (err) return;
+        if (err) {
+          setPaginationError(true);
+          return;
+        }
 
         const fetchedTimeline =
           timelineToPaginate.getNeighbouringTimeline(
@@ -419,7 +424,7 @@ const useTimelinePagination = (
       }
     };
   }, [mx, alive, setTimeline, limit]);
-  return { handleTimelinePagination, isFetching };
+  return { handleTimelinePagination, isFetching, paginationError };
 };
 
 const useLiveEventArrive = (room: Room, onArrive: (mEvent: MatrixEvent) => void) => {
@@ -612,6 +617,8 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     eventId ? getEmptyTimeline() : getInitialTimeline(room)
   );
   const [isCheckingRoom, setIsCheckingRoom] = useState(!eventId);
+  const [timelineError, setTimelineError] = useState(false);
+  const [timelineRefreshKey, setTimelineRefreshKey] = useState(0);
   const eventsLength = getTimelinesEventsCount(timeline.linkedTimelines);
   const liveTimelineLinked =
     timeline.linkedTimelines[timeline.linkedTimelines.length - 1] === getLiveTimeline(room);
@@ -635,6 +642,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
     let cancelled = false;
     setIsCheckingRoom(true);
+    setTimelineError(false);
     mx.getLatestTimeline(room.getUnfilteredTimelineSet())
       .then(async (latestTimeline) => {
         if (cancelled || !alive() || !latestTimeline) return;
@@ -646,7 +654,9 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
         }
         if (!cancelled && alive()) setTimeline(getInitialTimeline(room));
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (!cancelled) setTimelineError(true);
+      })
       .finally(() => {
         if (!cancelled) setIsCheckingRoom(false);
       });
@@ -654,9 +664,9 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     return () => {
       cancelled = true;
     };
-  }, [alive, eventId, mx, room]);
+  }, [alive, eventId, mx, room, timelineRefreshKey]);
 
-  const { handleTimelinePagination, isFetching } = useTimelinePagination(
+  const { handleTimelinePagination, isFetching, paginationError } = useTimelinePagination(
     mx,
     timeline,
     setTimeline,
@@ -1882,6 +1892,25 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
           </Box>
         </TimelineFloat>
       )}
+      {(timelineError || paginationError) && !isCheckingRoom && (
+        <TimelineFloat position="Top">
+          <Chip
+            variant="Critical"
+            radii="Pill"
+            outlined
+            onClick={() => {
+              setTimelineRefreshKey((key) => key + 1);
+              setTimelineError(false);
+            }}
+          >
+            <Text size="L400">
+              {timelineError
+                ? 'Couldn’t refresh messages. Showing cached messages. Retry'
+                : 'Couldn’t load more messages. Retry'}
+            </Text>
+          </Chip>
+        </TimelineFloat>
+      )}
       {unreadInfo?.readUptoEventId && !unreadInfo?.inLiveTimeline && (
         <TimelineFloat position="Top">
           <Chip
@@ -1957,6 +1986,14 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
             ))}
 
           {getItems().map(eventRenderer)}
+
+          {!isCheckingRoom && !isFetching && eventsLength === 0 && !timelineError && (
+            <Box alignItems="Center" justifyContent="Center" style={{ minHeight: '40vh' }}>
+              <Text size="L400" priority="300">
+                No messages yet.
+              </Text>
+            </Box>
+          )}
 
           {isFetching &&
             (!liveTimelineLinked || !rangeAtEnd) &&

@@ -746,7 +746,7 @@ export function SpaceTabs({ scrollRef }: SpaceTabsProps) {
 
         const newSpacesContent = makeMatrixIIITSpacesContent(mx, newItems);
         localEchoSidebarItem(parseSidebar(mx, orphanSpaces, newSpacesContent));
-        mx.setAccountData(AccountDataEvent.MatrixIIITSpaces, newSpacesContent);
+        mx.setAccountData(AccountDataEvent.MatrixIIITSpaces as any, newSpacesContent as any);
       },
       [mx, sidebarItems, setOpenedFolder, localEchoSidebarItem, orphanSpaces]
     )
@@ -792,7 +792,7 @@ export function SpaceTabs({ scrollRef }: SpaceTabsProps) {
 
       const newSpacesContent = makeMatrixIIITSpacesContent(mx, newItems);
       localEchoSidebarItem(parseSidebar(mx, orphanSpaces, newSpacesContent));
-      mx.setAccountData(AccountDataEvent.MatrixIIITSpaces, newSpacesContent);
+      mx.setAccountData(AccountDataEvent.MatrixIIITSpaces as any, newSpacesContent as any);
     },
     [mx, sidebarItems, orphanSpaces, localEchoSidebarItem]
   );

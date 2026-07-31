@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import {
   Outlet,
   Route,
@@ -68,7 +68,12 @@ import { CreateSpaceModalRenderer } from '../features/create-space';
 import { SearchModalRenderer } from '../features/search';
 import { getFallbackSession } from '../state/sessions';
 import { CallStatusRenderer } from './CallStatusRenderer';
-import { CallEmbedProvider } from '../components/CallEmbedProvider';
+
+const CallEmbedProvider = lazy(() =>
+  import('../components/CallEmbedProvider').then((module) => ({
+    default: module.CallEmbedProvider,
+  }))
+);
 
 export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize) => {
   const { hashRouter } = clientConfig;
@@ -129,18 +134,20 @@ export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize)
                 <ClientRoomsNotificationPreferences>
                   <ClientBindAtoms>
                     <ClientNonUIFeatures>
-                      <CallEmbedProvider>
-                        <ClientLayout
-                          nav={
-                            <MobileFriendlyClientNav>
-                              <SidebarNav />
-                            </MobileFriendlyClientNav>
-                          }
-                        >
-                          <Outlet />
-                        </ClientLayout>
-                        <CallStatusRenderer />
-                      </CallEmbedProvider>
+                      <Suspense fallback={null}>
+                        <CallEmbedProvider>
+                          <ClientLayout
+                            nav={
+                              <MobileFriendlyClientNav>
+                                <SidebarNav />
+                              </MobileFriendlyClientNav>
+                            }
+                          >
+                            <Outlet />
+                          </ClientLayout>
+                          <CallStatusRenderer />
+                        </CallEmbedProvider>
+                      </Suspense>
                       <SearchModalRenderer />
                       <UserRoomProfileRenderer />
                       <CreateRoomModalRenderer />

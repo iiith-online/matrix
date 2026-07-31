@@ -23,6 +23,8 @@ type SessionInfo = {
   baseUrl: string;
 };
 
+const SHELL_CACHE = 'matrix-shell-v1';
+
 /**
  * Store session per client (tab)
  */
@@ -44,7 +46,7 @@ async function cleanupDeadClients() {
   });
 }
 
-function setSession(clientId: string, accessToken: any, baseUrl: any) {
+function setSession(clientId: string, accessToken: unknown, baseUrl: unknown) {
   if (typeof accessToken === 'string' && typeof baseUrl === 'string') {
     sessions.set(clientId, { accessToken, baseUrl });
   } else {
@@ -91,7 +93,13 @@ async function requestSessionWithTimeout(
   return Promise.race([sessionPromise, timeout]);
 }
 
-self.addEventListener('install', () => {
+self.addEventListener('install', (event: ExtendableEvent) => {
+  event.waitUntil(
+    caches
+      .open(SHELL_CACHE)
+      .then((cache) => cache.add(new Request(self.registration.scope, { cache: 'reload' })))
+      .catch(() => undefined)
+  );
   self.skipWaiting();
 });
 
@@ -152,6 +160,14 @@ self.addEventListener('push', (event: PushEvent) => {
   );
 });
 
+self.addEventListener('pushsubscriptionchange', (event: ExtendableEvent) => {
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => client.postMessage({ type: 'pushSubscriptionChanged' }));
+    })
+  );
+});
+
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close();
   event.waitUntil(
@@ -161,7 +177,7 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
         type: 'window',
         includeUncontrolled: true,
       })) as WindowClient[];
-      const client = clients[0];
+      const client = clients.find((candidate) => candidate.visibilityState === 'visible') ?? clients[0];
       if (client) {
         await client.navigate(clickUrl);
         await client.focus();
@@ -188,6 +204,17 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
 });
 
 const MEDIA_PATHS = ['/_matrix/client/v1/media/download', '/_matrix/client/v1/media/thumbnail'];
+
+function isShellRequest(request: Request): boolean {
+  if (request.mode === 'navigate') return true;
+  const url = new URL(request.url);
+  const scope = new URL(self.registration.scope);
+  return (
+    url.origin === scope.origin &&
+    url.pathname.startsWith(scope.pathname) &&
+    (url.pathname.includes('/assets/') || /\.(?:css|js|woff2?|png|svg|ico)$/.test(url.pathname))
+  );
+}
 
 function mediaPath(url: string): boolean {
   try {
@@ -217,7 +244,27 @@ function fetchConfig(token: string): RequestInit {
 self.addEventListener('fetch', (event: FetchEvent) => {
   const { url, method } = event.request;
 
-  if (method !== 'GET' || !mediaPath(url)) return;
+  if (method !== 'GET') return;
+
+  if (isShellRequest(event.request)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const responseCopy = response.clone();
+            caches.open(SHELL_CACHE).then((cache) => cache.put(event.request, responseCopy));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cache = await caches.open(SHELL_CACHE);
+          return (await cache.match(event.request)) ?? (await cache.match(self.registration.scope)) ?? Response.error();
+        })
+    );
+    return;
+  }
+
+  if (!mediaPath(url)) return;
 
   const { clientId } = event;
   if (!clientId) return;

@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Provider as JotaiProvider } from 'jotai';
 import { OverlayContainerProvider, PopOutContainerProvider, TooltipContainerProvider } from 'folds';
 import { RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 import { ClientConfigLoader } from '../components/ClientConfigLoader';
 import { ClientConfigProvider } from '../hooks/useClientConfig';
@@ -14,6 +13,9 @@ import { ScreenSizeProvider, useScreenSize } from '../hooks/useScreenSize';
 import { useCompositionEndTracking } from '../hooks/useComposingCheck';
 
 const queryClient = new QueryClient();
+const ReactQueryDevtools = import.meta.env.DEV
+  ? lazy(() => import('@tanstack/react-query-devtools').then((module) => ({ default: module.ReactQueryDevtools })))
+  : null;
 
 function App() {
   const screenSize = useScreenSize();
@@ -39,7 +41,11 @@ function App() {
                       <JotaiProvider>
                         <RouterProvider router={createRouter(clientConfig, screenSize)} />
                       </JotaiProvider>
-                      <ReactQueryDevtools initialIsOpen={false} />
+                      {ReactQueryDevtools && (
+                        <Suspense fallback={null}>
+                          <ReactQueryDevtools initialIsOpen={false} />
+                        </Suspense>
+                      )}
                     </QueryClientProvider>
                   </ClientConfigProvider>
                 )}

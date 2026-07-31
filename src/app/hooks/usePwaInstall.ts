@@ -37,7 +37,9 @@ export const usePwaInstall = () => {
   useEffect(() => {
     const subscriber = () => forceUpdate((value) => value + 1);
     subscribers.add(subscriber);
-    return () => subscribers.delete(subscriber);
+    return () => {
+      subscribers.delete(subscriber);
+    };
   }, []);
 
   const install = useCallback(async () => {

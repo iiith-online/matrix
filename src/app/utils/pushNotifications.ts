@@ -140,7 +140,7 @@ export const enablePushNotifications = async (
   }
   subscription ??= await worker.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: vapidKey,
+    applicationServerKey: vapidKey as unknown as BufferSource,
   });
 
   const current = getPushRegistration();
@@ -222,7 +222,8 @@ export const sendTestPushNotification = async (): Promise<void> => {
 
 export const reconcilePushNotifications = async (
   mx: MatrixClient,
-  clickBase: string
+  clickBase: string,
+  force = false
 ): Promise<void> => {
   const registration = getPushRegistration();
   const previewNeedsUpdate = registration?.previewMode !== 'maximum';
@@ -230,7 +231,7 @@ export const reconcilePushNotifications = async (
     !registration ||
     !pushSupported() ||
     Notification.permission !== 'granted' ||
-    (!previewNeedsUpdate && Date.now() - registration.lastReconciledAt < RECONCILE_INTERVAL)
+    (!force && !previewNeedsUpdate && Date.now() - registration.lastReconciledAt < RECONCILE_INTERVAL)
   ) {
     return;
   }

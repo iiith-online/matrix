@@ -68,5 +68,28 @@ module.exports = {
         'no-undef': 'off',
       },
     },
+    {
+      files: ['server/**/*.js', 'api/**/*.js'],
+      env: { node: true },
+      rules: {
+        'no-await-in-loop': 'off',
+        'no-continue': 'off',
+        'no-control-regex': 'off',
+        'no-nested-ternary': 'off',
+        'no-restricted-syntax': 'off',
+        'prefer-destructuring': 'off',
+      },
+    },
+    {
+      files: ['src/util/cryptE2ERoomKeys.js'],
+      rules: {
+        'no-bitwise': 'off',
+        'no-console': 'off',
+        'no-constant-condition': 'off',
+        'no-param-reassign': 'off',
+        'no-plusplus': 'off',
+        'prefer-template': 'off',
+      },
+    },
   ],
 };

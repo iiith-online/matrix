@@ -3,6 +3,7 @@ import webpush from 'web-push';
 
 const SUBSCRIPTION_TTL = 180 * 24 * 60 * 60;
 const DEDUPE_TTL = 24 * 60 * 60;
+const RATE_LIMIT_TTL = 60;
 const APP_ID = process.env.PUSH_APP_ID || 'org.iiit.matrix.web';
 
 export class HttpError extends Error {
@@ -32,6 +33,7 @@ const redis = async (command) => {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(command),
+    signal: AbortSignal.timeout(8_000),
   });
   if (!response.ok) throw new HttpError(502, 'Push storage failed.');
 
@@ -52,10 +54,20 @@ const parseBody = (req, maxBytes = 16_384) => {
 };
 
 const requestOrigin = (req) => {
+  if (process.env.PUSH_PUBLIC_ORIGIN) return process.env.PUSH_PUBLIC_ORIGIN.replace(/\/$/, '');
   const protocol = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0];
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   if (!host) throw new HttpError(400, 'Missing host.');
   return `${protocol}://${host}`;
+};
+
+const rateLimit = async (req, bucket, limit) => {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const identity = forwarded || req.socket?.remoteAddress || 'unknown';
+  const key = `push:rate:${bucket}:${sha256(identity)}`;
+  const count = Number(await redis(['INCR', key]));
+  if (count === 1) await redis(['EXPIRE', key, RATE_LIMIT_TTL]);
+  if (count > limit) throw new HttpError(429, 'Too many requests. Try again later.');
 };
 
 export const requireSameOrigin = (req) => {
@@ -158,6 +170,7 @@ export const getPublicConfig = async (req) => ({
 export const upsertSubscription = async (req) => {
   const origin = requireSameOrigin(req);
   if (!(await isEnabled())) throw new HttpError(503, 'Push notifications are disabled.');
+  await rateLimit(req, 'subscription', 20);
   const body = parseBody(req);
   const subscription = validateSubscription(body.subscription);
   const clickBase = validateClickBase(body.clickBase, origin);
@@ -273,6 +286,7 @@ const send = async (record, payload) => {
 export const sendTest = async (req) => {
   requireSameOrigin(req);
   if (!(await isEnabled())) throw new HttpError(503, 'Push notifications are disabled.');
+  await rateLimit(req, 'test', 10);
   const { record } = await loadManagedRecord(req);
   await send(record, {
     title: 'Matrix-IIIT',
@@ -290,6 +304,7 @@ const removeExpiredRecord = async (pushKey, record) => {
 
 export const handleMatrixNotify = async (req) => {
   if (!(await isEnabled())) return { rejected: [] };
+  await rateLimit(req, 'notify', 120);
   const { notification } = parseBody(req, 65_536);
   if (!notification || !Array.isArray(notification.devices) || notification.devices.length > 50) {
     throw new HttpError(400, 'Invalid Matrix notification.');
