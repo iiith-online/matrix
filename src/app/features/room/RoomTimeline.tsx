@@ -38,6 +38,7 @@ import {
   Icons,
   Line,
   Scroll,
+  Spinner,
   Text,
   as,
   color,
@@ -1828,7 +1829,24 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   };
 
   return (
-    <Box grow="Yes" style={{ position: 'relative' }}>
+    <Box grow="Yes" style={{ position: 'relative' }} aria-busy={isFetching}>
+      {isFetching && (
+        <TimelineFloat position="Top" role="status" aria-live="polite">
+          <Box
+            alignItems="Center"
+            gap="200"
+            style={{
+              padding: `${config.space.S200} ${config.space.S400}`,
+              borderRadius: config.radii.R300,
+              background: color.Background.Container,
+              boxShadow: `0 0 ${toRem(8)} ${color.Background.ContainerActive}`,
+            }}
+          >
+            <Spinner size="100" variant="Secondary" />
+            <Text size="T300">Loading messages…</Text>
+          </Box>
+        </TimelineFloat>
+      )}
       {unreadInfo?.readUptoEventId && !unreadInfo?.inLiveTimeline && (
         <TimelineFloat position="Top">
           <Chip
