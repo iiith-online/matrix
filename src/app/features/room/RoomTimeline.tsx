@@ -333,6 +333,7 @@ const useTimelinePagination = (
   const timelineRef = useRef(timeline);
   timelineRef.current = timeline;
   const alive = useAlive();
+  const [isFetching, setIsFetching] = useState(false);
 
   const handleTimelinePagination = useMemo(() => {
     let fetching = false;
@@ -386,35 +387,38 @@ const useTimelinePagination = (
       }
 
       fetching = true;
-      const [err] = await to(
-        mx.paginateEventTimeline(timelineToPaginate, {
-          backwards,
-          limit,
-        })
-      );
-      if (err) {
-        // TODO: handle pagination error.
-        return;
-      }
-      const fetchedTimeline =
-        timelineToPaginate.getNeighbouringTimeline(
-          backwards ? Direction.Backward : Direction.Forward
-        ) ?? timelineToPaginate;
-      // Decrypt all event ahead of render cycle
-      const roomId = fetchedTimeline.getRoomId();
-      const room = roomId ? mx.getRoom(roomId) : null;
+      setIsFetching(true);
+      try {
+        const [err] = await to(
+          mx.paginateEventTimeline(timelineToPaginate, {
+            backwards,
+            limit,
+          })
+        );
+        if (err) return;
 
-      if (room?.hasEncryptionStateEvent()) {
-        await to(decryptAllTimelineEvent(mx, fetchedTimeline));
-      }
+        const fetchedTimeline =
+          timelineToPaginate.getNeighbouringTimeline(
+            backwards ? Direction.Backward : Direction.Forward
+          ) ?? timelineToPaginate;
+        // Decrypt all event ahead of render cycle
+        const roomId = fetchedTimeline.getRoomId();
+        const room = roomId ? mx.getRoom(roomId) : null;
 
-      fetching = false;
-      if (alive()) {
-        recalibratePagination(lTimelines, timelinesEventsCount, backwards);
+        if (room?.hasEncryptionStateEvent()) {
+          await to(decryptAllTimelineEvent(mx, fetchedTimeline));
+        }
+
+        if (alive()) {
+          recalibratePagination(lTimelines, timelinesEventsCount, backwards);
+        }
+      } finally {
+        fetching = false;
+        if (alive()) setIsFetching(false);
       }
     };
   }, [mx, alive, setTimeline, limit]);
-  return handleTimelinePagination;
+  return { handleTimelinePagination, isFetching };
 };
 
 const useLiveEventArrive = (room: Room, onArrive: (mEvent: MatrixEvent) => void) => {
@@ -621,7 +625,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     rememberTimelineChain(room.roomId, timeline.linkedTimelines);
   }, [room.roomId, timeline.linkedTimelines]);
 
-  const handleTimelinePagination = useTimelinePagination(
+  const { handleTimelinePagination, isFetching } = useTimelinePagination(
     mx,
     timeline,
     setTimeline,
@@ -1865,7 +1869,8 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
               <RoomIntro room={room} />
             </div>
           )}
-          {(canPaginateBack || !rangeAtStart) &&
+          {isFetching &&
+            (canPaginateBack || !rangeAtStart) &&
             (messageLayout === MessageLayout.Compact ? (
               <>
                 <MessageBase>
@@ -1900,7 +1905,8 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
           {getItems().map(eventRenderer)}
 
-          {(!liveTimelineLinked || !rangeAtEnd) &&
+          {isFetching &&
+            (!liveTimelineLinked || !rangeAtEnd) &&
             (messageLayout === MessageLayout.Compact ? (
               <>
                 <MessageBase ref={observeFrontAnchor}>
