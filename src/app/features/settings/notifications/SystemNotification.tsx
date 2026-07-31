@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Text, Switch, Button, color, Spinner } from 'folds';
 import { IPusherRequest } from 'matrix-js-sdk';
 import { SequenceCard } from '../../../components/sequence-card';
@@ -10,6 +10,15 @@ import { getNotificationState, usePermissionState } from '../../../hooks/usePerm
 import { useEmailNotifications } from '../../../hooks/useEmailNotifications';
 import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
+import { useClientConfig } from '../../../hooks/useClientConfig';
+import { getOriginBaseUrl } from '../../../pages/pathUtils';
+import {
+  disconnectPushNotifications,
+  enablePushNotifications,
+  getPushStatus,
+  PushNotificationStatus,
+  sendTestPushNotification,
+} from '../../../utils/pushNotifications';
 
 function EmailNotification() {
   const mx = useMatrixClient();
@@ -85,16 +94,59 @@ function EmailNotification() {
 }
 
 export function SystemNotification() {
+  const mx = useMatrixClient();
+  const { hashRouter } = useClientConfig();
   const notifPermission = usePermissionState('notifications', getNotificationState());
-  const [showNotifications, setShowNotifications] = useSetting(settingsAtom, 'showNotifications');
+  const [, setShowNotifications] = useSetting(settingsAtom, 'showNotifications');
   const [isNotificationSounds, setIsNotificationSounds] = useSetting(
     settingsAtom,
     'isNotificationSounds'
   );
 
-  const requestNotificationPermission = () => {
-    window.Notification.requestPermission();
+  const [pushStatus, setPushStatus] = useState<PushNotificationStatus>();
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState<string>();
+
+  const refreshPushStatus = useCallback(() => {
+    getPushStatus()
+      .then(setPushStatus)
+      .catch(() => setPushStatus('stale'));
+  }, []);
+
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshPushStatus();
+    };
+    refreshPushStatus();
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [notifPermission, refreshPushStatus]);
+
+  const runPushAction = async (action: () => Promise<void>) => {
+    setPushBusy(true);
+    setPushError(undefined);
+    try {
+      await action();
+      refreshPushStatus();
+    } catch (error) {
+      setPushError(error instanceof Error ? error.message : 'Push notification setup failed.');
+    } finally {
+      setPushBusy(false);
+    }
   };
+
+  const pushDescription = {
+    unsupported: 'Web Push is not supported here. On iPhone or iPad, install the app first.',
+    'permission-required': 'Enable reliable notifications when this app is closed.',
+    blocked: 'Notification permission is blocked in your device settings.',
+    inactive: 'Push notifications are disconnected on this device.',
+    active: 'Push notifications are active on this device.',
+    stale: 'The saved push subscription needs to be enabled again.',
+  }[pushStatus ?? 'inactive'];
 
   return (
     <Box direction="Column" gap="100">
@@ -106,30 +158,65 @@ export function SystemNotification() {
         gap="400"
       >
         <SettingTile
-          title="Desktop Notifications"
+          title="Push notifications on this device"
           description={
-            notifPermission === 'denied' ? (
-              <Text as="span" style={{ color: color.Critical.Main }} size="T200">
-                {'Notification' in window
-                  ? 'Notification permission is blocked. Please allow notification permission from browser address bar.'
-                  : 'Notifications are not supported by the system.'}
-              </Text>
-            ) : (
-              <span>Show desktop notifications when message arrive.</span>
-            )
+            <span aria-live="polite">
+              {pushDescription}
+              {pushError && (
+                <Text as="span" style={{ color: color.Critical.Main }} size="T200">
+                  {' '}
+                  {pushError}
+                </Text>
+              )}
+            </span>
           }
           after={
-            notifPermission === 'prompt' ? (
-              <Button size="300" radii="300" onClick={requestNotificationPermission}>
-                <Text size="B300">Enable</Text>
-              </Button>
-            ) : (
-              <Switch
-                disabled={notifPermission !== 'granted'}
-                value={showNotifications}
-                onChange={setShowNotifications}
-              />
-            )
+            <Box gap="100">
+              {pushStatus === 'active' ? (
+                <>
+                  <Button
+                    style={{ minHeight: 44 }}
+                    size="300"
+                    radii="300"
+                    disabled={pushBusy}
+                    onClick={() => runPushAction(sendTestPushNotification)}
+                  >
+                    <Text size="B300">Send test</Text>
+                  </Button>
+                  <Button
+                    style={{ minHeight: 44 }}
+                    size="300"
+                    radii="300"
+                    variant="Critical"
+                    disabled={pushBusy}
+                    onClick={() =>
+                      runPushAction(async () => {
+                        await disconnectPushNotifications(mx);
+                        setShowNotifications(false);
+                      })
+                    }
+                  >
+                    <Text size="B300">Disconnect</Text>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  style={{ minHeight: 44 }}
+                  size="300"
+                  radii="300"
+                  disabled={pushBusy || pushStatus === 'unsupported' || pushStatus === 'blocked'}
+                  onClick={() =>
+                    runPushAction(async () => {
+                      await enablePushNotifications(mx, getOriginBaseUrl(hashRouter));
+                      setShowNotifications(true);
+                    })
+                  }
+                >
+                  <Text size="B300">Enable</Text>
+                </Button>
+              )}
+              {pushBusy && <Spinner variant="Secondary" />}
+            </Box>
           }
         />
       </SequenceCard>

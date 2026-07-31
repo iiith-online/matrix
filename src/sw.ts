@@ -3,6 +3,21 @@
 export type {};
 declare const self: ServiceWorkerGlobalScope;
 
+type PushPayload = {
+  title: string;
+  body: string;
+  clickUrl: string;
+  tag: string;
+  unread?: number;
+  priority: 'high' | 'low';
+  show: boolean;
+};
+
+type BadgeNavigator = WorkerNavigator & {
+  setAppBadge?: (contents?: number) => Promise<void>;
+  clearAppBadge?: () => Promise<void>;
+};
+
 type SessionInfo = {
   accessToken: string;
   baseUrl: string;
@@ -85,6 +100,74 @@ self.addEventListener('activate', (event: ExtendableEvent) => {
     (async () => {
       await self.clients.claim();
       await cleanupDeadClients();
+    })()
+  );
+});
+
+async function updateBadge(unread?: number) {
+  if (unread === undefined) return;
+  const badgeNavigator = self.navigator as BadgeNavigator;
+  if (unread === 0) {
+    await badgeNavigator.clearAppBadge?.();
+  } else {
+    await badgeNavigator.setAppBadge?.(unread);
+  }
+}
+
+function safeClickUrl(value: string): string {
+  try {
+    const url = new URL(value, self.location.origin);
+    return url.origin === self.location.origin ? url.href : self.registration.scope;
+  } catch {
+    return self.registration.scope;
+  }
+}
+
+self.addEventListener('push', (event: PushEvent) => {
+  event.waitUntil(
+    (async () => {
+      let payload: PushPayload;
+      try {
+        payload = event.data?.json() as PushPayload;
+      } catch {
+        return;
+      }
+
+      await updateBadge(payload.unread);
+      const clients = (await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })) as WindowClient[];
+      if (!payload.show || clients.some((client) => client.visibilityState === 'visible')) return;
+
+      const icon = new URL('pwa/icon-192.png', self.registration.scope).href;
+      await self.registration.showNotification(payload.title || 'Matrix-IIIT', {
+        body: payload.body,
+        icon,
+        badge: icon,
+        tag: payload.tag,
+        data: { clickUrl: safeClickUrl(payload.clickUrl) },
+      });
+    })()
+  );
+});
+
+self.addEventListener('notificationclick', (event: NotificationEvent) => {
+  event.notification.close();
+  event.waitUntil(
+    (async () => {
+      const clickUrl = safeClickUrl(event.notification.data?.clickUrl);
+      const clients = (await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })) as WindowClient[];
+      const client = clients[0];
+      if (client) {
+        await client.navigate(clickUrl);
+        await client.focus();
+        return;
+      }
+      await self.clients.openWindow(clickUrl);
     })()
   );
 });

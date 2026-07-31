@@ -35,6 +35,7 @@ import { stopPropagation } from '../../utils/keyboard';
 import { AuthMetadataProvider } from '../../hooks/useAuthMetadata';
 import { getFallbackSession } from '../../state/sessions';
 import { AutoDiscovery } from './AutoDiscovery';
+import { unsubscribeLocalPush } from '../../utils/pushNotifications';
 
 function ClientRootLoading() {
   return (
@@ -125,6 +126,7 @@ function ClientRootOptions({ mx }: { mx?: MatrixClient }) {
 const useLogoutListener = (mx?: MatrixClient) => {
   useEffect(() => {
     const handleLogout: HttpApiEventHandlerMap[HttpApiEvent.SessionLoggedOut] = async () => {
+      await unsubscribeLocalPush().catch(() => undefined);
       mx?.stopClient();
       await mx?.clearStores();
       window.localStorage.clear();

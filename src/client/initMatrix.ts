@@ -3,6 +3,7 @@ import { createClient, MatrixClient, IndexedDBStore, IndexedDBCryptoStore } from
 import { cryptoCallbacks } from './secretStorageKeys';
 import { clearNavToActivePathStore } from '../app/state/navToActivePath';
 import { pushSessionToSW } from '../sw-session';
+import { disconnectPushNotifications, unsubscribeLocalPush } from '../app/utils/pushNotifications';
 
 type Session = {
   baseUrl: string;
@@ -92,6 +93,7 @@ export const clearCacheAndReload = async (mx: MatrixClient) => {
 };
 
 export const logoutClient = async (mx: MatrixClient) => {
+  await disconnectPushNotifications(mx);
   pushSessionToSW();
   mx.stopClient();
   try {
@@ -106,6 +108,7 @@ export const logoutClient = async (mx: MatrixClient) => {
 };
 
 export const clearLoginData = async () => {
+  await unsubscribeLocalPush();
   const dbs = await window.indexedDB.databases();
 
   dbs.forEach((idbInfo) => {

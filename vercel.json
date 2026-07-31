@@ -2,7 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/((?!manifest\\.json$|sw\\.js(?:\\.map)?$|pwa/|public/|assets/|iiit\\.png$|config\\.json$|pdf\\.worker\\.min\\.js$).*)",
+      "source": "/_matrix/push/v1/notify",
+      "destination": "/api/matrix-notify"
+    },
+    {
+      "source": "/((?!api/|_matrix/push/v1/notify$|manifest\\.json$|sw\\.js(?:\\.map)?$|pwa/|public/|assets/|iiit\\.png$|config\\.json$|pdf\\.worker\\.min\\.js$).*)",
       "destination": "/index.html"
     }
   ]

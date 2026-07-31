@@ -5,12 +5,13 @@
   "main": "index.js",
   "type": "module",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "scripts": {
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test:push": "node --test server/pushGateway.test.js",
     "lint": "npm run check:eslint && npm run check:prettier",
     "check:eslint": "eslint src/*",
     "check:prettier": "prettier --check .",
@@ -87,7 +88,8 @@
     "slate-dom": "0.123.0",
     "slate-history": "0.113.1",
     "slate-react": "0.123.0",
-    "ua-parser-js": "1.0.35"
+    "ua-parser-js": "1.0.35",
+    "web-push": "3.6.7"
   },
   "devDependencies": {
     "@element-hq/element-call-embedded": "0.20.1",

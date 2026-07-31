@@ -12,7 +12,7 @@ import { settingsAtom } from '../../state/settings';
 import { allInvitesAtom } from '../../state/room-list/inviteList';
 import { usePreviousValue } from '../../hooks/usePreviousValue';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
-import { getInboxInvitesPath, getInboxNotificationsPath } from '../pathUtils';
+import { getInboxInvitesPath, getInboxNotificationsPath, getOriginBaseUrl } from '../pathUtils';
 import {
   getMemberDisplayName,
   getNotificationType,
@@ -24,6 +24,8 @@ import { getMxIdLocalPart, mxcUrlToHttp } from '../../utils/matrix';
 import { useSelectedRoom } from '../../hooks/router/useSelectedRoom';
 import { useInboxNotificationsSelected } from '../../hooks/router/useInbox';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
+import { useClientConfig } from '../../hooks/useClientConfig';
+import { getPushRegistration, reconcilePushNotifications } from '../../utils/pushNotifications';
 
 function SystemEmojiFeature() {
   const [twitterEmoji] = useSetting(settingsAtom, 'twitterEmoji');
@@ -91,7 +93,7 @@ function InviteNotifications() {
 
   useEffect(() => {
     if (invites.length > perviousInviteLen && mx.getSyncState() === 'SYNCING') {
-      if (showNotifications && notificationPermission('granted')) {
+      if (!getPushRegistration() && showNotifications && notificationPermission('granted')) {
         notify(invites.length - perviousInviteLen);
       }
 
@@ -193,7 +195,7 @@ function MessageNotifications() {
         return;
       }
 
-      if (showNotifications && notificationPermission('granted')) {
+      if (!getPushRegistration() && showNotifications && notificationPermission('granted')) {
         const avatarMxc =
           room.getAvatarFallbackMember()?.getMxcAvatarUrl() ?? room.getMxcAvatarUrl();
         notify({
@@ -234,6 +236,28 @@ function MessageNotifications() {
   );
 }
 
+function PushNotificationReconciler() {
+  const mx = useMatrixClient();
+  const { hashRouter } = useClientConfig();
+
+  useEffect(() => {
+    const reconcile = () => {
+      if (document.visibilityState === 'visible') {
+        reconcilePushNotifications(mx, getOriginBaseUrl(hashRouter)).catch(() => undefined);
+      }
+    };
+    reconcile();
+    window.addEventListener('focus', reconcile);
+    document.addEventListener('visibilitychange', reconcile);
+    return () => {
+      window.removeEventListener('focus', reconcile);
+      document.removeEventListener('visibilitychange', reconcile);
+    };
+  }, [mx, hashRouter]);
+
+  return null;
+}
+
 type ClientNonUIFeaturesProps = {
   children: ReactNode;
 };
@@ -244,6 +268,7 @@ export function ClientNonUIFeatures({ children }: ClientNonUIFeaturesProps) {
       <SystemEmojiFeature />
       <PageZoomFeature />
       <FaviconUpdater />
+      <PushNotificationReconciler />
       <InviteNotifications />
       <MessageNotifications />
       {children}
