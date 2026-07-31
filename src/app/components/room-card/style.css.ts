@@ -5,6 +5,7 @@ import { ContainerColor } from '../../styles/ContainerColor.css';
 export const CardGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(3, 1fr)',
+  alignItems: 'start',
   gap: config.space.S400,
 });
 
@@ -12,13 +13,13 @@ export const RoomCardBase = style([
   DefaultReset,
   ContainerColor({ variant: 'SurfaceVariant' }),
   {
-    padding: config.space.S500,
+    alignSelf: 'start',
+    padding: config.space.S400,
     borderRadius: config.radii.R500,
   },
 ]);
 
 export const RoomCardTopic = style({
-  minHeight: `calc(3 * ${config.lineHeight.T200})`,
   display: '-webkit-box',
   WebkitLineClamp: 3,
   WebkitBoxOrient: 'vertical',

@@ -26,10 +26,9 @@ export const AuthCard = style({
 export const AuthLogo = style([
   DefaultReset,
   {
-    width: toRem(26),
+    width: toRem(52),
     height: toRem(26),
-
-    borderRadius: '50%',
+    objectFit: 'contain',
   },
 ]);
 

@@ -8,42 +8,41 @@ import {
   redirect,
 } from 'react-router-dom';
 
-import { ClientConfig } from '../hooks/useClientConfig';
-import { AuthLayout, Login, Register, ResetPassword } from './auth';
+import { ClientConfig, DEFAULT_HOMESERVER } from '../hooks/useClientConfig';
+import { AuthLayout, CasLandingPage, Login } from './auth';
 import {
   DIRECT_PATH,
   EXPLORE_PATH,
   HOME_PATH,
   LOGIN_PATH,
   INBOX_PATH,
-  REGISTER_PATH,
-  RESET_PASSWORD_PATH,
+  RECENT_PATH,
   SPACE_PATH,
   _CREATE_PATH,
-  _FEATURED_PATH,
   _INVITES_PATH,
   _JOIN_PATH,
   _LOBBY_PATH,
   _NOTIFICATIONS_PATH,
   _ROOM_PATH,
   _SEARCH_PATH,
-  _SERVER_PATH,
   CREATE_PATH,
+  ROOT_PATH,
 } from './paths';
 import {
   getAppPathFromHref,
-  getExploreFeaturedPath,
-  getHomePath,
+  getExploreServerPath,
   getInboxNotificationsPath,
   getLoginPath,
   getOriginBaseUrl,
+  getRecentPath,
   getSpaceLobbyPath,
 } from './pathUtils';
 import { ClientBindAtoms, ClientLayout, ClientRoot } from './client';
 import { Home, HomeRouteRoomProvider, HomeSearch } from './client/home';
+import { Recent, RecentRouteRoomProvider } from './client/recent';
 import { Direct, DirectCreate, DirectRouteRoomProvider } from './client/direct';
 import { RouteSpaceProvider, Space, SpaceRouteRoomProvider, SpaceSearch } from './client/space';
-import { Explore, FeaturedRooms, PublicRooms } from './client/explore';
+import { Explore, PublicRooms } from './client/explore';
 import { Notifications, Inbox, Invites } from './client/inbox';
 import { setAfterLoginRedirectPath } from './afterLoginRedirectPath';
 import { Room } from '../features/room';
@@ -78,18 +77,23 @@ export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize)
   const routes = createRoutesFromElements(
     <Route>
       <Route
-        index
         loader={() => {
-          if (getFallbackSession()) return redirect(getHomePath());
-          const afterLoginPath = getAppPathFromHref(getOriginBaseUrl(), window.location.href);
-          if (afterLoginPath) setAfterLoginRedirectPath(afterLoginPath);
-          return redirect(getLoginPath());
+          if (getFallbackSession()) return redirect(getRecentPath());
+          return null;
         }}
-      />
+        element={
+          <>
+            <AuthLayout redirectToServerPath={false} />
+            <UnAuthRouteThemeManager />
+          </>
+        }
+      >
+        <Route index element={<CasLandingPage />} />
+      </Route>
       <Route
         loader={() => {
           if (getFallbackSession()) {
-            return redirect(getHomePath());
+            return redirect(getRecentPath());
           }
 
           return null;
@@ -102,10 +106,9 @@ export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize)
         }
       >
         <Route path={LOGIN_PATH} element={<Login />} />
-        <Route path={REGISTER_PATH} element={<Register />} />
-        <Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />
       </Route>
-
+      <Route path="/register/*" loader={() => redirect(ROOT_PATH)} />
+      <Route path="/reset-password/*" loader={() => redirect(ROOT_PATH)} />
       <Route
         loader={() => {
           const session = getFallbackSession();
@@ -155,6 +158,30 @@ export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize)
         }
       >
         <Route
+          path={RECENT_PATH}
+          element={
+            <PageRoot
+              nav={
+                <MobileFriendlyPageNav path={RECENT_PATH}>
+                  <Recent />
+                </MobileFriendlyPageNav>
+              }
+            >
+              <Outlet />
+            </PageRoot>
+          }
+        >
+          {mobile ? null : <Route index element={<WelcomePage />} />}
+          <Route
+            path={_ROOM_PATH}
+            element={
+              <RecentRouteRoomProvider>
+                <Room />
+              </RecentRouteRoomProvider>
+            }
+          />
+        </Route>
+        <Route
           path={HOME_PATH}
           element={
             <PageRoot
@@ -168,7 +195,7 @@ export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize)
             </PageRoot>
           }
         >
-          {mobile ? null : <Route index element={<WelcomePage />} />}
+          {mobile ? null : <Route index element={<WelcomePage homeDashboard />} />}
           <Route path={_CREATE_PATH} element={<HomeCreateRoom />} />
           <Route path={_JOIN_PATH} element={<p>join</p>} />
           <Route path={_SEARCH_PATH} element={<HomeSearch />} />
@@ -260,15 +287,12 @@ export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize)
             </PageRoot>
           }
         >
-          {mobile ? null : (
-            <Route
-              index
-              loader={() => redirect(getExploreFeaturedPath())}
-              element={<WelcomePage />}
-            />
-          )}
-          <Route path={_FEATURED_PATH} element={<FeaturedRooms />} />
-          <Route path={_SERVER_PATH} element={<PublicRooms />} />
+          <Route
+            index
+            loader={() => redirect(getExploreServerPath(DEFAULT_HOMESERVER))}
+            element={<WelcomePage />}
+          />
+          <Route path={`${DEFAULT_HOMESERVER}/`} element={<PublicRooms />} />
         </Route>
         <Route path={CREATE_PATH} element={<Create />} />
         <Route

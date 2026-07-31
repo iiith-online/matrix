@@ -1,7 +1,11 @@
 import { MatrixClient, MatrixEvent, RoomMember, RoomMemberEvent } from 'matrix-js-sdk';
 import { useEffect, useState } from 'react';
 
-export const useRoomMembers = (mx: MatrixClient, roomId: string): RoomMember[] => {
+export const useRoomMembers = (
+  mx: MatrixClient,
+  roomId: string,
+  loadMembers = true
+): RoomMember[] => {
   const [members, setMembers] = useState<RoomMember[]>([]);
 
   useEffect(() => {
@@ -17,11 +21,15 @@ export const useRoomMembers = (mx: MatrixClient, roomId: string): RoomMember[] =
 
     if (room) {
       setMembers(room.getMembers());
-      room.loadMembersIfNeeded().then(() => {
+      if (loadMembers) {
+        room.loadMembersIfNeeded().then(() => {
+          loadingMembers = false;
+          if (disposed) return;
+          updateMemberList();
+        });
+      } else {
         loadingMembers = false;
-        if (disposed) return;
-        updateMemberList();
-      });
+      }
     }
 
     mx.on(RoomMemberEvent.Membership, updateMemberList);
@@ -31,7 +39,7 @@ export const useRoomMembers = (mx: MatrixClient, roomId: string): RoomMember[] =
       mx.removeListener(RoomMemberEvent.Membership, updateMemberList);
       mx.removeListener(RoomMemberEvent.PowerLevel, updateMemberList);
     };
-  }, [mx, roomId]);
+  }, [mx, roomId, loadMembers]);
 
   return members;
 };

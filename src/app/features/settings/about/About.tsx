@@ -4,7 +4,7 @@ import { Page, PageContent, PageHeader } from '../../../components/page';
 import { SequenceCard } from '../../../components/sequence-card';
 import { SequenceCardStyle } from '../styles.css';
 import { SettingTile } from '../../../components/setting-tile';
-import CinnySVG from '../../../../../public/res/svg/cinny.svg';
+import IIITIcon from '../../../../iiit.png';
 import { clearCacheAndReload } from '../../../../client/initMatrix';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
 
@@ -37,37 +37,24 @@ export function About({ requestClose }: AboutProps) {
               <Box gap="400">
                 <Box shrink="No">
                   <img
-                    style={{ width: toRem(60), height: toRem(60) }}
-                    src={CinnySVG}
-                    alt="Cinny logo"
+                    style={{ width: toRem(116), height: toRem(60), objectFit: 'contain' }}
+                    src={IIITIcon}
+                    alt="Matrix-IIIT logo"
                   />
                 </Box>
                 <Box direction="Column" gap="300">
                   <Box direction="Column" gap="100">
                     <Box gap="100" alignItems="End">
-                      <Text size="H3">Cinny</Text>
+                      <Text size="H3">Matrix-IIIT</Text>
                       <Text size="T200">v4.12.3</Text>
                     </Box>
-                    <Text>Yet another matrix client.</Text>
+                    <Text>A secure Matrix client for IIIT communities.</Text>
                   </Box>
 
                   <Box gap="200" wrap="Wrap">
                     <Button
                       as="a"
-                      href="https://github.com/cinnyapp/cinny"
-                      rel="noreferrer noopener"
-                      target="_blank"
-                      variant="Secondary"
-                      fill="Soft"
-                      size="300"
-                      radii="300"
-                      before={<Icon src={Icons.Code} size="100" filled />}
-                    >
-                      <Text size="B300">Source Code</Text>
-                    </Button>
-                    <Button
-                      as="a"
-                      href="https://cinny.in/#sponsor"
+                      href="https://matrix.org"
                       rel="noreferrer noopener"
                       target="_blank"
                       variant="Critical"

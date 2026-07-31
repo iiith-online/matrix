@@ -30,12 +30,14 @@ import { Devices } from './devices';
 import { EmojisStickers } from './emojis-stickers';
 import { DeveloperTools } from './developer-tools';
 import { About } from './about';
+import { Toggles } from './toggles/Toggles';
 import { UseStateProvider } from '../../components/UseStateProvider';
 import { stopPropagation } from '../../utils/keyboard';
 import { LogoutDialog } from '../../components/LogoutDialog';
 
 export enum SettingsPages {
   GeneralPage,
+  TogglesPage,
   AccountPage,
   NotificationPage,
   DevicesPage,
@@ -57,6 +59,11 @@ const useSettingsMenuItems = (): SettingsMenuItem[] =>
         page: SettingsPages.GeneralPage,
         name: 'General',
         icon: Icons.Setting,
+      },
+      {
+        page: SettingsPages.TogglesPage,
+        name: 'Toggles',
+        icon: Icons.Eye,
       },
       {
         page: SettingsPages.AccountPage,
@@ -212,6 +219,9 @@ export function Settings({ initialPage, requestClose }: SettingsProps) {
     >
       {activePage === SettingsPages.GeneralPage && (
         <General requestClose={handlePageRequestClose} />
+      )}
+      {activePage === SettingsPages.TogglesPage && (
+        <Toggles requestClose={handlePageRequestClose} />
       )}
       {activePage === SettingsPages.AccountPage && (
         <Account requestClose={handlePageRequestClose} />

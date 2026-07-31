@@ -72,6 +72,7 @@ import { RoomSettingsPage } from '../../state/roomSettings';
 import { useCallEmbed, useCallStart } from '../../hooks/useCallEmbed';
 import { useLivekitSupport } from '../../hooks/useLivekitSupport';
 import { webRTCSupported } from '../../utils/rtc';
+import { SyncStatusDot } from '../../pages/client/SyncStatus';
 
 type RoomMenuProps = {
   room: Room;
@@ -475,10 +476,13 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
               />
             </Avatar>
           )}
-          <Box direction="Column">
-            <Text size={topic ? 'H5' : 'H3'} truncate>
-              {name}
-            </Text>
+          <Box direction="Column" style={{ minWidth: 0 }}>
+            <Box alignItems="Center" gap="200" style={{ minWidth: 0 }}>
+              <Text size={topic ? 'H5' : 'H3'} truncate>
+                {name}
+              </Text>
+              <SyncStatusDot mx={mx} />
+            </Box>
             {topic && (
               <UseStateProvider initial={false}>
                 {(viewTopic, setViewTopic) => (

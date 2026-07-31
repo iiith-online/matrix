@@ -2,12 +2,19 @@ import { ReactNode, useCallback } from 'react';
 import { matchPath, useLocation, useNavigate } from 'react-router-dom';
 import {
   getDirectPath,
-  getExplorePath,
   getHomePath,
   getInboxPath,
+  getRecentPath,
   getSpacePath,
 } from '../pages/pathUtils';
-import { DIRECT_PATH, EXPLORE_PATH, HOME_PATH, INBOX_PATH, SPACE_PATH } from '../pages/paths';
+import {
+  DIRECT_PATH,
+  EXPLORE_PATH,
+  HOME_PATH,
+  INBOX_PATH,
+  RECENT_PATH,
+  SPACE_PATH,
+} from '../pages/paths';
 
 type BackRouteHandlerProps = {
   children: (onBack: () => void) => ReactNode;
@@ -33,6 +40,19 @@ export function BackRouteHandler({ children }: BackRouteHandlerProps) {
     if (
       matchPath(
         {
+          path: RECENT_PATH,
+          caseSensitive: true,
+          end: false,
+        },
+        location.pathname
+      )
+    ) {
+      navigate(getRecentPath());
+      return;
+    }
+    if (
+      matchPath(
+        {
           path: DIRECT_PATH,
           caseSensitive: true,
           end: false,
@@ -41,6 +61,19 @@ export function BackRouteHandler({ children }: BackRouteHandlerProps) {
       )
     ) {
       navigate(getDirectPath());
+      return;
+    }
+    if (
+      matchPath(
+        {
+          path: EXPLORE_PATH,
+          caseSensitive: true,
+          end: false,
+        },
+        location.pathname
+      )
+    ) {
+      navigate(getRecentPath());
       return;
     }
     const spaceMatch = matchPath(
@@ -57,19 +90,6 @@ export function BackRouteHandler({ children }: BackRouteHandlerProps) {
 
     if (decodedSpaceIdOrAlias) {
       navigate(getSpacePath(decodedSpaceIdOrAlias));
-      return;
-    }
-    if (
-      matchPath(
-        {
-          path: EXPLORE_PATH,
-          caseSensitive: true,
-          end: false,
-        },
-        location.pathname
-      )
-    ) {
-      navigate(getExplorePath());
       return;
     }
     if (

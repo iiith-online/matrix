@@ -88,7 +88,7 @@ const generateFallbackTag = (powerLevelTags: PowerLevelTags, power: number): Mem
 };
 
 export const usePowerLevelTags = (room: Room, powerLevels: IPowerLevels): PowerLevelTags => {
-  const tagsEvent = useStateEvent(room, StateEvent.PowerLevelTags);
+  const tagsEvent = useStateEvent(room, StateEvent.MatrixIIITPowerLevelTags);
 
   const powerLevelTags: PowerLevelTags = useMemo(() => {
     const content = tagsEvent?.getContent<PowerLevelTags>();

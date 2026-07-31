@@ -710,7 +710,6 @@ function DateAndTime() {
 function Editor() {
   const [enterForNewline, setEnterForNewline] = useSetting(settingsAtom, 'enterForNewline');
   const [isMarkdown, setIsMarkdown] = useSetting(settingsAtom, 'isMarkdown');
-  const [hideActivity, setHideActivity] = useSetting(settingsAtom, 'hideActivity');
 
   return (
     <Box direction="Column" gap="100">
@@ -728,13 +727,6 @@ function Editor() {
         <SettingTile
           title="Markdown Formatting"
           after={<Switch variant="Primary" value={isMarkdown} onChange={setIsMarkdown} />}
-        />
-      </SequenceCard>
-      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
-        <SettingTile
-          title="Hide Typing & Read Receipts"
-          description="Turn off both typing status and read receipts to keep your activity private."
-          after={<Switch variant="Primary" value={hideActivity} onChange={setHideActivity} />}
         />
       </SequenceCard>
     </Box>
@@ -884,18 +876,9 @@ function Messages() {
     settingsAtom,
     'legacyUsernameColor'
   );
-  const [hideMembershipEvents, setHideMembershipEvents] = useSetting(
-    settingsAtom,
-    'hideMembershipEvents'
-  );
-  const [hideNickAvatarEvents, setHideNickAvatarEvents] = useSetting(
-    settingsAtom,
-    'hideNickAvatarEvents'
-  );
   const [mediaAutoLoad, setMediaAutoLoad] = useSetting(settingsAtom, 'mediaAutoLoad');
   const [urlPreview, setUrlPreview] = useSetting(settingsAtom, 'urlPreview');
   const [encUrlPreview, setEncUrlPreview] = useSetting(settingsAtom, 'encUrlPreview');
-  const [showHiddenEvents, setShowHiddenEvents] = useSetting(settingsAtom, 'showHiddenEvents');
 
   return (
     <Box direction="Column" gap="100">
@@ -914,30 +897,6 @@ function Messages() {
               variant="Primary"
               value={legacyUsernameColor}
               onChange={setLegacyUsernameColor}
-            />
-          }
-        />
-      </SequenceCard>
-      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
-        <SettingTile
-          title="Hide Membership Change"
-          after={
-            <Switch
-              variant="Primary"
-              value={hideMembershipEvents}
-              onChange={setHideMembershipEvents}
-            />
-          }
-        />
-      </SequenceCard>
-      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
-        <SettingTile
-          title="Hide Profile Change"
-          after={
-            <Switch
-              variant="Primary"
-              value={hideNickAvatarEvents}
-              onChange={setHideNickAvatarEvents}
             />
           }
         />
@@ -964,14 +923,6 @@ function Messages() {
         <SettingTile
           title="Url Preview in Encrypted Room"
           after={<Switch variant="Primary" value={encUrlPreview} onChange={setEncUrlPreview} />}
-        />
-      </SequenceCard>
-      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
-        <SettingTile
-          title="Show Hidden Events"
-          after={
-            <Switch variant="Primary" value={showHiddenEvents} onChange={setShowHiddenEvents} />
-          }
         />
       </SequenceCard>
     </Box>

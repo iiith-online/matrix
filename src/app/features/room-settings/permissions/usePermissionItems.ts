@@ -153,7 +153,7 @@ export const usePermissionGroups = (): PermissionGroup[] => {
         {
           location: {
             state: true,
-            key: StateEvent.PowerLevelTags,
+            key: StateEvent.MatrixIIITPowerLevelTags,
           },
           name: 'Edit Power Levels',
         },

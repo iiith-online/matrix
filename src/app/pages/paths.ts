@@ -7,18 +7,6 @@ export type LoginPathSearchParams = {
 };
 export const LOGIN_PATH = '/login/:server?/';
 
-export type RegisterPathSearchParams = {
-  username?: string;
-  email?: string;
-  token?: string;
-};
-export const REGISTER_PATH = '/register/:server?/';
-
-export type ResetPasswordPathSearchParams = {
-  email?: string;
-};
-export const RESET_PASSWORD_PATH = '/reset-password/:server?/';
-
 export const _CREATE_PATH = 'create/';
 export const _JOIN_PATH = 'join/';
 export const _LOBBY_PATH = 'lobby/';
@@ -47,6 +35,9 @@ export const HOME_CREATE_PATH = `/home/${_CREATE_PATH}`;
 export const HOME_JOIN_PATH = `/home/${_JOIN_PATH}`;
 export const HOME_SEARCH_PATH = `/home/${_SEARCH_PATH}`;
 export const HOME_ROOM_PATH = `/home/${_ROOM_PATH}`;
+
+export const RECENT_PATH = '/recent/';
+export const RECENT_ROOM_PATH = `/recent/${_ROOM_PATH}`;
 
 export const DIRECT_PATH = '/direct/';
 export type DirectCreateSearchParams = {

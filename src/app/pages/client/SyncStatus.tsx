@@ -1,8 +1,8 @@
 import { MatrixClient, SyncState } from 'matrix-js-sdk';
 import React, { useCallback, useState } from 'react';
-import { Box, config, Line, Text } from 'folds';
+import { Box, color, Text, toRem, Tooltip, TooltipProvider } from 'folds';
 import { useSyncState } from '../../hooks/useSyncState';
-import { ContainerColor } from '../../styles/ContainerColor.css';
+import { SidebarItem, SidebarItemTooltip } from '../../components/sidebar';
 
 type StateData = {
   current: SyncState | null;
@@ -12,11 +12,32 @@ type StateData = {
 type SyncStatusProps = {
   mx: MatrixClient;
 };
-export function SyncStatus({ mx }: SyncStatusProps) {
-  const [stateData, setStateData] = useState<StateData>({
-    current: null,
+
+type SyncStatusValue = {
+  color: string;
+  label: string;
+};
+
+const getSyncStatusValue = (current: SyncState | null): SyncStatusValue => {
+  if (current === SyncState.Error) {
+    return { color: color.Critical.Main, label: 'Disconnected' };
+  }
+
+  if (current === SyncState.Prepared || current === SyncState.Syncing) {
+    return { color: color.Success.Main, label: 'Connected' };
+  }
+
+  return {
+    color: color.Warning.Main,
+    label: current === SyncState.Reconnecting ? 'Reconnecting' : 'Connecting',
+  };
+};
+
+export const useSyncStatus = (mx: MatrixClient): SyncStatusValue => {
+  const [stateData, setStateData] = useState<StateData>(() => ({
+    current: mx.getSyncState(),
     previous: undefined,
-  });
+  }));
 
   useSyncState(
     mx,
@@ -30,58 +51,70 @@ export function SyncStatus({ mx }: SyncStatusProps) {
     }, [])
   );
 
-  if (
-    (stateData.current === SyncState.Prepared ||
-      stateData.current === SyncState.Syncing ||
-      stateData.current === SyncState.Catchup) &&
-    stateData.previous !== SyncState.Syncing
-  ) {
-    return (
-      <Box direction="Column" shrink="No">
-        <Box
-          className={ContainerColor({ variant: 'Success' })}
-          style={{ padding: `${config.space.S100} 0` }}
-          alignItems="Center"
-          justifyContent="Center"
-        >
-          <Text size="L400">Connecting...</Text>
-        </Box>
-        <Line variant="Success" size="300" />
-      </Box>
-    );
-  }
+  return getSyncStatusValue(stateData.current);
+};
 
-  if (stateData.current === SyncState.Reconnecting) {
-    return (
-      <Box direction="Column" shrink="No">
-        <Box
-          className={ContainerColor({ variant: 'Warning' })}
-          style={{ padding: `${config.space.S100} 0` }}
-          alignItems="Center"
-          justifyContent="Center"
-        >
-          <Text size="L400">Connection Lost! Reconnecting...</Text>
-        </Box>
-        <Line variant="Warning" size="300" />
-      </Box>
-    );
-  }
+function SyncStatusBar({ color: barColor, label }: { color: string; label: string }) {
+  return (
+    <SidebarItem>
+      <SidebarItemTooltip tooltip={label}>
+        {(triggerRef) => (
+          <Box
+            as="span"
+            ref={triggerRef}
+            style={{
+              width: toRem(24),
+              height: toRem(4),
+              borderRadius: toRem(4),
+              backgroundColor: barColor,
+              opacity: 0.85,
+              boxShadow: `0 0 0 ${toRem(2)} ${color.Background.Container}`,
+            }}
+            role="status"
+            aria-label={label}
+            title={label}
+          />
+        )}
+      </SidebarItemTooltip>
+    </SidebarItem>
+  );
+}
 
-  if (stateData.current === SyncState.Error) {
-    return (
-      <Box direction="Column" shrink="No">
-        <Box
-          className={ContainerColor({ variant: 'Critical' })}
-          style={{ padding: `${config.space.S100} 0` }}
-          alignItems="Center"
-          justifyContent="Center"
-        >
-          <Text size="L400">Connection Lost!</Text>
-        </Box>
-        <Line variant="Critical" size="300" />
-      </Box>
-    );
-  }
+export function SyncStatus({ mx }: SyncStatusProps) {
+  const status = useSyncStatus(mx);
+  return <SyncStatusBar color={status.color} label={status.label} />;
+}
 
-  return null;
+export function SyncStatusDot({ mx }: SyncStatusProps) {
+  const status = useSyncStatus(mx);
+
+  return (
+    <TooltipProvider
+      position="Bottom"
+      offset={4}
+      tooltip={
+        <Tooltip>
+          <Text>{status.label}</Text>
+        </Tooltip>
+      }
+    >
+      {(triggerRef) => (
+        <Box
+          as="span"
+          ref={triggerRef}
+          style={{
+            width: toRem(7),
+            height: toRem(7),
+            flexShrink: 0,
+            borderRadius: '50%',
+            backgroundColor: status.color,
+            boxShadow: `0 0 0 ${toRem(2)} ${color.Background.Container}`,
+          }}
+          role="status"
+          aria-label={`Connection: ${status.label}`}
+          title={status.label}
+        />
+      )}
+    </TooltipProvider>
+  );
 }

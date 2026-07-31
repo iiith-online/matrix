@@ -9,6 +9,9 @@ import { isMembershipChanged, reactionOrEditEvent } from '../utils/room';
 export const useRoomLatestRenderedEvent = (room: Room) => {
   const [hideMembershipEvents] = useSetting(settingsAtom, 'hideMembershipEvents');
   const [hideNickAvatarEvents] = useSetting(settingsAtom, 'hideNickAvatarEvents');
+  const [showDecryptionErrors] = useSetting(settingsAtom, 'showDecryptionErrors');
+  const [showCallEvents] = useSetting(settingsAtom, 'showCallEvents');
+  const [showRoomChanges] = useSetting(settingsAtom, 'showRoomChanges');
   const [showHiddenEvents] = useSetting(settingsAtom, 'showHiddenEvents');
   const [latestEvent, setLatestEvent] = useState<MatrixEvent>();
 
@@ -20,6 +23,13 @@ export const useRoomLatestRenderedEvent = (room: Room) => {
 
         if (!evt) continue;
         if (reactionOrEditEvent(evt)) continue;
+        if (
+          !showDecryptionErrors &&
+          (evt.getType() === MessageEvent.RoomMessageEncrypted ||
+            evt.getContent().msgtype === 'm.bad.encrypted')
+        ) {
+          continue;
+        }
         if (evt.getType() === StateEvent.RoomMember) {
           const membershipChanged = isMembershipChanged(evt);
           if (membershipChanged && hideMembershipEvents) continue;
@@ -27,13 +37,24 @@ export const useRoomLatestRenderedEvent = (room: Room) => {
           return evt;
         }
 
+        if (evt.getType() === StateEvent.GroupCallMemberPrefix) {
+          if (showCallEvents) return evt;
+          continue;
+        }
+
         if (
-          evt.getType() === MessageEvent.RoomMessage ||
-          evt.getType() === MessageEvent.RoomMessageEncrypted ||
-          evt.getType() === MessageEvent.Sticker ||
           evt.getType() === StateEvent.RoomName ||
           evt.getType() === StateEvent.RoomTopic ||
           evt.getType() === StateEvent.RoomAvatar
+        ) {
+          if (showRoomChanges) return evt;
+          continue;
+        }
+
+        if (
+          evt.getType() === MessageEvent.RoomMessage ||
+          evt.getType() === MessageEvent.RoomMessageEncrypted ||
+          evt.getType() === MessageEvent.Sticker
         ) {
           return evt;
         }
@@ -52,7 +73,15 @@ export const useRoomLatestRenderedEvent = (room: Room) => {
     return () => {
       room.removeListener(RoomEvent.Timeline, handleTimelineEvent);
     };
-  }, [room, hideMembershipEvents, hideNickAvatarEvents, showHiddenEvents]);
+  }, [
+    room,
+    hideMembershipEvents,
+    hideNickAvatarEvents,
+    showDecryptionErrors,
+    showCallEvents,
+    showRoomChanges,
+    showHiddenEvents,
+  ]);
 
   return latestEvent;
 };

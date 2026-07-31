@@ -10,6 +10,8 @@ import * as css from './Reply.css';
 import { MessageBadEncryptedContent, MessageDeletedContent, MessageFailedContent } from './content';
 import { scaleSystemEmoji } from '../../plugins/react-custom-html-parser';
 import { useRoomEvent } from '../../hooks/useRoomEvent';
+import { useSetting } from '../../state/hooks/settings';
+import { settingsAtom } from '../../state/settings';
 import colorMXID from '../../../util/colorMXID';
 import { GetMemberPowerTag } from '../../hooks/useMemberPowerTag';
 
@@ -78,6 +80,7 @@ export const Reply = as<'div', ReplyProps>(
     ref
   ) => {
     const placeholderWidth = useMemo(() => randomNumberBetween(40, 400), []);
+    const [showDecryptionErrors] = useSetting(settingsAtom, 'showDecryptionErrors');
     const getFromLocalTimeline = useCallback(
       () => timelineSet?.findEventById(replyEventId),
       [timelineSet, replyEventId]
@@ -99,6 +102,8 @@ export const Reply = as<'div', ReplyProps>(
 
     const badEncryption = replyEvent?.getContent().msgtype === 'm.bad.encrypted';
     const bodyJSX = body ? scaleSystemEmoji(trimReplyFromBody(body)) : fallbackBody;
+
+    if (badEncryption && !showDecryptionErrors) return null;
 
     return (
       <Box direction="Row" gap="200" alignItems="Center" {...props} ref={ref}>

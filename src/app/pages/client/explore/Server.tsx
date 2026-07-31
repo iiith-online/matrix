@@ -13,7 +13,6 @@ import {
   Button,
   Chip,
   Icon,
-  IconButton,
   Icons,
   Input,
   Line,
@@ -44,7 +43,6 @@ import { useRoomNavigate } from '../../../hooks/useRoomNavigate';
 import { getMxIdServer } from '../../../utils/matrix';
 import { stopPropagation } from '../../../utils/keyboard';
 import { ScreenSize, useScreenSizeContext } from '../../../hooks/useScreenSize';
-import { BackRouteHandler } from '../../../components/BackRouteHandler';
 
 const useServerSearchParams = (searchParams: URLSearchParams): ExploreServerPathSearchParams =>
   useMemo(
@@ -495,17 +493,7 @@ export function PublicRooms() {
           </>
         ) : (
           <>
-            <Box grow="Yes" basis="No">
-              {screenSize === ScreenSize.Mobile && (
-                <BackRouteHandler>
-                  {(onBack) => (
-                    <IconButton onClick={onBack}>
-                      <Icon src={Icons.ArrowLeft} />
-                    </IconButton>
-                  )}
-                </BackRouteHandler>
-              )}
-            </Box>
+            <Box grow="Yes" basis="No" />
             <Box grow="Yes" justifyContent="Center" alignItems="Center" gap="200">
               {screenSize !== ScreenSize.Mobile && <Icon size="400" src={Icons.Server} />}
               <Text size="H3" truncate>

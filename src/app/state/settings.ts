@@ -34,6 +34,9 @@ export interface Settings {
   messageSpacing: MessageSpacing;
   hideMembershipEvents: boolean;
   hideNickAvatarEvents: boolean;
+  showDecryptionErrors: boolean;
+  showCallEvents: boolean;
+  showRoomChanges: boolean;
   mediaAutoLoad: boolean;
   urlPreview: boolean;
   encUrlPreview: boolean;
@@ -57,18 +60,21 @@ const defaultSettings: Settings = {
   monochromeMode: false,
   isMarkdown: true,
   editorToolbar: false,
-  twitterEmoji: false,
+  twitterEmoji: true,
   pageZoom: 100,
   hideActivity: false,
 
   isPeopleDrawer: true,
   memberSortFilterIndex: 0,
   enterForNewline: false,
-  messageLayout: 0,
-  messageSpacing: '400',
-  hideMembershipEvents: false,
+  messageLayout: MessageLayout.Bubble,
+  messageSpacing: '300',
+  hideMembershipEvents: true,
   hideNickAvatarEvents: true,
-  mediaAutoLoad: true,
+  showDecryptionErrors: false,
+  showCallEvents: false,
+  showRoomChanges: false,
+  mediaAutoLoad: false,
   urlPreview: true,
   encUrlPreview: false,
   showHiddenEvents: false,

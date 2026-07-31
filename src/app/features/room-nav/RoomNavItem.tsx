@@ -367,10 +367,29 @@ export function RoomNavItem({
                 <TypingIndicator size="300" disableAnimation />
               </Badge>
             )}
-            {!optionsVisible && unread && (
-              <UnreadBadgeCenter>
-                <UnreadBadge highlight={unread.highlight > 0} count={unread.total} />
-              </UnreadBadgeCenter>
+            {!optionsVisible && unread && (unread.total > 0 || unread.highlight > 0) && (
+              <Box
+                as="span"
+                alignItems="Center"
+                gap="100"
+                shrink="No"
+                title={`${unread.total} unread${
+                  unread.highlight > 0 ? `, ${unread.highlight} mentions` : ''
+                }`}
+              >
+                {unread.total > 0 && (
+                  <UnreadBadgeCenter>
+                    <UnreadBadge count={unread.total} />
+                  </UnreadBadgeCenter>
+                )}
+                {unread.highlight > 0 && (
+                  <Badge variant="Success" fill="Solid" size="400" radii="Pill">
+                    <Text as="span" size="L400">
+                      @{unread.highlight > 99 ? '99+' : unread.highlight}
+                    </Text>
+                  </Badge>
+                )}
+              </Box>
             )}
             {!optionsVisible && notificationMode !== RoomNotificationMode.Unset && (
               <Icon

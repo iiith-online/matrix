@@ -11,7 +11,7 @@ import {
   config,
 } from 'folds';
 import React, { useCallback, useEffect } from 'react';
-import { MatrixError } from 'matrix-js-sdk';
+import { MatrixError } from 'matrix-js-sdk/lib/http-api/errors';
 import { useAutoDiscoveryInfo } from '../../../hooks/useAutoDiscoveryInfo';
 import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { CustomLoginResponse, LoginError, login, useLoginComplete } from './loginUtil';
@@ -54,11 +54,7 @@ export function TokenLogin({ token }: TokenLoginProps) {
   >(useCallback(login, []));
 
   useEffect(() => {
-    startLogin(baseUrl, {
-      type: 'm.login.token',
-      token,
-      initial_device_display_name: 'Cinny Web',
-    });
+    startLogin(baseUrl, token);
   }, [baseUrl, token, startLogin]);
 
   useLoginComplete(loginState.status === AsyncStatus.Success ? loginState.data : undefined);

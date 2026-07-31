@@ -1,7 +1,7 @@
 {
-  "name": "cinny",
+  "name": "matrix-iiit",
   "version": "4.12.3",
-  "description": "Yet another matrix client",
+  "description": "A secure Matrix client for IIIT communities",
   "main": "index.js",
   "type": "module",
   "engines": {
@@ -56,7 +56,7 @@
     "emojibase-data": "15.3.2",
     "file-saver": "2.0.5",
     "focus-trap-react": "10.0.2",
-    "folds": "2.7.1",
+    "folds": "2.6.2",
     "html-dom-parser": "4.0.0",
     "html-react-parser": "4.2.0",
     "i18next": "23.12.2",

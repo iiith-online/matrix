@@ -231,10 +231,66 @@ type RoomTimelineProps = {
 };
 
 const PAGINATION_LIMIT = 80;
+const INITIAL_TIMELINE_WINDOW = 40;
+const ROOM_TIMELINE_CACHE_LIMIT = 20;
 
 type Timeline = {
   linkedTimelines: EventTimeline[];
   range: ItemRange;
+};
+
+type CachedTimelineChain = {
+  linkedTimelines: EventTimeline[];
+};
+
+// MatrixClient keeps the message data and timeline objects alive between route
+// changes. Keep the linked timeline chain too, so reopening a room does not
+// have to walk the entire in-memory history before rendering the latest page.
+const roomTimelineCache = new Map<string, CachedTimelineChain>();
+
+const rememberTimelineChain = (roomId: string, linkedTimelines: EventTimeline[]) => {
+  if (linkedTimelines.length === 0) return;
+
+  // Re-inserting moves the room to the end of the LRU-style cache.
+  roomTimelineCache.delete(roomId);
+  roomTimelineCache.set(roomId, { linkedTimelines });
+
+  if (roomTimelineCache.size > ROOM_TIMELINE_CACHE_LIMIT) {
+    const oldestRoomId = roomTimelineCache.keys().next().value as string | undefined;
+    if (oldestRoomId) roomTimelineCache.delete(oldestRoomId);
+  }
+};
+
+const isCurrentTimelineChain = (linkedTimelines: EventTimeline[], liveTimeline: EventTimeline) => {
+  if (
+    linkedTimelines.length === 0 ||
+    linkedTimelines[linkedTimelines.length - 1] !== liveTimeline
+  ) {
+    return false;
+  }
+
+  return linkedTimelines.every(
+    (timeline, index) =>
+      index === 0 ||
+      timeline.getNeighbouringTimeline(Direction.Backward) === linkedTimelines[index - 1]
+  );
+};
+
+const getRecentLinkedTimelines = (liveTimeline: EventTimeline, minimumEvents: number) => {
+  const linkedTimelines = [liveTimeline];
+  const seenTimelines = new Set(linkedTimelines);
+  let eventCount = timelineToEventsCount(liveTimeline);
+
+  while (eventCount < minimumEvents) {
+    const previousTimeline = linkedTimelines[0].getNeighbouringTimeline(Direction.Backward);
+    if (!previousTimeline || seenTimelines.has(previousTimeline)) break;
+
+    linkedTimelines.unshift(previousTimeline);
+    seenTimelines.add(previousTimeline);
+    eventCount += timelineToEventsCount(previousTimeline);
+  }
+
+  return linkedTimelines;
 };
 
 const useEventTimelineLoader = (
@@ -402,12 +458,18 @@ const useLiveTimelineRefresh = (room: Room, onRefresh: () => void) => {
 };
 
 const getInitialTimeline = (room: Room) => {
-  const linkedTimelines = getLinkedTimelines(getLiveTimeline(room));
+  const liveTimeline = getLiveTimeline(room);
+  const cachedTimeline = roomTimelineCache.get(room.roomId);
+  const linkedTimelines =
+    cachedTimeline && isCurrentTimelineChain(cachedTimeline.linkedTimelines, liveTimeline)
+      ? cachedTimeline.linkedTimelines
+      : getRecentLinkedTimelines(liveTimeline, INITIAL_TIMELINE_WINDOW);
   const evLength = getTimelinesEventsCount(linkedTimelines);
+  rememberTimelineChain(room.roomId, linkedTimelines);
   return {
     linkedTimelines,
     range: {
-      start: Math.max(evLength - PAGINATION_LIMIT, 0),
+      start: Math.max(evLength - INITIAL_TIMELINE_WINDOW, 0),
       end: evLength,
     },
   };
@@ -430,6 +492,10 @@ const getRoomUnreadInfo = (room: Room, scrollTo = false) => {
   };
 };
 
+const isDecryptionErrorEvent = (mEvent: MatrixEvent) =>
+  mEvent.getType() === MessageEvent.RoomMessageEncrypted ||
+  mEvent.getContent().msgtype === 'm.bad.encrypted';
+
 export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimelineProps) {
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
@@ -440,6 +506,9 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   const direct = useIsDirectRoom();
   const [hideMembershipEvents] = useSetting(settingsAtom, 'hideMembershipEvents');
   const [hideNickAvatarEvents] = useSetting(settingsAtom, 'hideNickAvatarEvents');
+  const [showDecryptionErrors] = useSetting(settingsAtom, 'showDecryptionErrors');
+  const [showCallEvents] = useSetting(settingsAtom, 'showCallEvents');
+  const [showRoomChanges] = useSetting(settingsAtom, 'showRoomChanges');
   const [mediaAutoLoad] = useSetting(settingsAtom, 'mediaAutoLoad');
   const [urlPreview] = useSetting(settingsAtom, 'urlPreview');
   const [encUrlPreview] = useSetting(settingsAtom, 'encUrlPreview');
@@ -486,7 +555,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
 
   const imagePackRooms: Room[] = useImagePackRooms(room.roomId, roomToParents);
 
-  const [unreadInfo, setUnreadInfo] = useState(() => getRoomUnreadInfo(room, true));
+  const [unreadInfo, setUnreadInfo] = useState(() => getRoomUnreadInfo(room));
   const readUptoEventIdRef = useRef<string>();
   if (unreadInfo) {
     readUptoEventIdRef.current = unreadInfo.readUptoEventId;
@@ -541,11 +610,16 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   const liveTimelineLinked =
     timeline.linkedTimelines[timeline.linkedTimelines.length - 1] === getLiveTimeline(room);
   const canPaginateBack =
+    Boolean(timeline.linkedTimelines[0]?.getNeighbouringTimeline(Direction.Backward)) ||
     typeof timeline.linkedTimelines[0]?.getPaginationToken(Direction.Backward) === 'string';
   const rangeAtStart = timeline.range.start === 0;
   const rangeAtEnd = timeline.range.end === eventsLength;
   const atLiveEndRef = useRef(liveTimelineLinked && rangeAtEnd);
   atLiveEndRef.current = liveTimelineLinked && rangeAtEnd;
+
+  useEffect(() => {
+    rememberTimelineChain(room.roomId, timeline.linkedTimelines);
+  }, [room.roomId, timeline.linkedTimelines]);
 
   const handleTimelinePagination = useTimelinePagination(
     mx,
@@ -803,12 +877,23 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     }
   }, [eventId, loadEventTimeline]);
 
-  // Scroll to bottom on initial timeline load
+  // Scroll to bottom after the initial timeline has laid out. The virtualized
+  // message list can grow after the first layout pass, so retry briefly.
   useLayoutEffect(() => {
-    const scrollEl = scrollRef.current;
-    if (scrollEl) {
-      scrollToBottom(scrollEl);
-    }
+    let frame = 0;
+    let attempts = 0;
+    const scrollToLatest = () => {
+      const scrollEl = scrollRef.current;
+      if (scrollEl) {
+        scrollToBottom(scrollEl, 'instant');
+        setAtBottom(true);
+      }
+      attempts += 1;
+      if (attempts < 3) frame = requestAnimationFrame(scrollToLatest);
+    };
+
+    frame = requestAnimationFrame(scrollToLatest);
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   // if live timeline is linked and unreadInfo change
@@ -1022,6 +1107,10 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   >(
     {
       [MessageEvent.RoomMessage]: (mEventId, mEvent, item, timelineSet, collapse) => {
+        if (!showDecryptionErrors && mEvent.getContent().msgtype === 'm.bad.encrypted') {
+          return null;
+        }
+
         const reactionRelations = getEventReactions(timelineSet, mEventId);
         const reactions = reactionRelations && reactionRelations.getSortedAnnotationsByKey();
         const hasReactions = reactions && reactions.length > 0;
@@ -1119,116 +1208,125 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
         const highlighted = focusItem?.index === item && focusItem.highlight;
 
         return (
-          <Message
-            key={mEvent.getId()}
-            data-message-item={item}
-            data-message-id={mEventId}
-            room={room}
-            mEvent={mEvent}
-            messageSpacing={messageSpacing}
-            messageLayout={messageLayout}
-            collapse={collapse}
-            highlight={highlighted}
-            edit={editId === mEventId}
-            canDelete={canRedact || (canDeleteOwn && mEvent.getSender() === mx.getUserId())}
-            canSendReaction={canSendReaction}
-            canPinEvent={canPinEvent}
-            imagePackRooms={imagePackRooms}
-            relations={hasReactions ? reactionRelations : undefined}
-            onUserClick={handleUserClick}
-            onUsernameClick={handleUsernameClick}
-            onReplyClick={handleReplyClick}
-            onReactionToggle={handleReactionToggle}
-            onEditId={handleEdit}
-            reply={
-              replyEventId && (
-                <Reply
+          <EncryptedContent mEvent={mEvent}>
+            {() => {
+              if (!showDecryptionErrors && mEvent.getType() === MessageEvent.RoomMessageEncrypted) {
+                return null;
+              }
+              return (
+                <Message
+                  key={mEvent.getId()}
+                  data-message-item={item}
+                  data-message-id={mEventId}
                   room={room}
-                  timelineSet={timelineSet}
-                  replyEventId={replyEventId}
-                  threadRootId={threadRootId}
-                  onClick={handleOpenReply}
-                  getMemberPowerTag={getMemberPowerTag}
+                  mEvent={mEvent}
+                  messageSpacing={messageSpacing}
+                  messageLayout={messageLayout}
+                  collapse={collapse}
+                  highlight={highlighted}
+                  edit={editId === mEventId}
+                  canDelete={canRedact || (canDeleteOwn && mEvent.getSender() === mx.getUserId())}
+                  canSendReaction={canSendReaction}
+                  canPinEvent={canPinEvent}
+                  imagePackRooms={imagePackRooms}
+                  relations={hasReactions ? reactionRelations : undefined}
+                  onUserClick={handleUserClick}
+                  onUsernameClick={handleUsernameClick}
+                  onReplyClick={handleReplyClick}
+                  onReactionToggle={handleReactionToggle}
+                  onEditId={handleEdit}
+                  reply={
+                    replyEventId && (
+                      <Reply
+                        room={room}
+                        timelineSet={timelineSet}
+                        replyEventId={replyEventId}
+                        threadRootId={threadRootId}
+                        onClick={handleOpenReply}
+                        getMemberPowerTag={getMemberPowerTag}
+                        accessibleTagColors={accessiblePowerTagColors}
+                        legacyUsernameColor={legacyUsernameColor || direct}
+                      />
+                    )
+                  }
+                  reactions={
+                    reactionRelations && (
+                      <Reactions
+                        style={{ marginTop: config.space.S200 }}
+                        room={room}
+                        relations={reactionRelations}
+                        mEventId={mEventId}
+                        canSendReaction={canSendReaction}
+                        onReactionToggle={handleReactionToggle}
+                      />
+                    )
+                  }
+                  hideReadReceipts={hideActivity}
+                  showDeveloperTools={showDeveloperTools}
+                  memberPowerTag={getMemberPowerTag(mEvent.getSender() ?? '')}
                   accessibleTagColors={accessiblePowerTagColors}
                   legacyUsernameColor={legacyUsernameColor || direct}
-                />
-              )
-            }
-            reactions={
-              reactionRelations && (
-                <Reactions
-                  style={{ marginTop: config.space.S200 }}
-                  room={room}
-                  relations={reactionRelations}
-                  mEventId={mEventId}
-                  canSendReaction={canSendReaction}
-                  onReactionToggle={handleReactionToggle}
-                />
-              )
-            }
-            hideReadReceipts={hideActivity}
-            showDeveloperTools={showDeveloperTools}
-            memberPowerTag={getMemberPowerTag(mEvent.getSender() ?? '')}
-            accessibleTagColors={accessiblePowerTagColors}
-            legacyUsernameColor={legacyUsernameColor || direct}
-            hour24Clock={hour24Clock}
-            dateFormatString={dateFormatString}
-          >
-            <EncryptedContent mEvent={mEvent}>
-              {() => {
-                if (mEvent.isRedacted()) return <RedactedContent />;
-                if (mEvent.getType() === MessageEvent.Sticker)
-                  return (
-                    <MSticker
-                      content={mEvent.getContent()}
-                      renderImageContent={(props) => (
-                        <ImageContent
-                          {...props}
-                          autoPlay={mediaAutoLoad}
-                          renderImage={(p) => <Image {...p} loading="lazy" />}
-                          renderViewer={(p) => <ImageViewer {...p} />}
+                  hour24Clock={hour24Clock}
+                  dateFormatString={dateFormatString}
+                >
+                  {(() => {
+                    if (mEvent.isRedacted()) return <RedactedContent />;
+                    if (mEvent.getType() === MessageEvent.Sticker)
+                      return (
+                        <MSticker
+                          content={mEvent.getContent()}
+                          renderImageContent={(props) => (
+                            <ImageContent
+                              {...props}
+                              autoPlay={mediaAutoLoad}
+                              renderImage={(p) => <Image {...p} loading="lazy" />}
+                              renderViewer={(p) => <ImageViewer {...p} />}
+                            />
+                          )}
                         />
-                      )}
-                    />
-                  );
-                if (mEvent.getType() === MessageEvent.RoomMessage) {
-                  const editedEvent = getEditedEvent(mEventId, mEvent, timelineSet);
-                  const getContent = (() =>
-                    editedEvent?.getContent()['m.new_content'] ??
-                    mEvent.getContent()) as GetContentCallback;
+                      );
+                    if (mEvent.getType() === MessageEvent.RoomMessage) {
+                      const editedEvent = getEditedEvent(mEventId, mEvent, timelineSet);
+                      const getContent = (() =>
+                        editedEvent?.getContent()['m.new_content'] ??
+                        mEvent.getContent()) as GetContentCallback;
 
-                  const senderId = mEvent.getSender() ?? '';
-                  const senderDisplayName =
-                    getMemberDisplayName(room, senderId) ?? getMxIdLocalPart(senderId) ?? senderId;
-                  return (
-                    <RenderMessageContent
-                      displayName={senderDisplayName}
-                      msgType={mEvent.getContent().msgtype ?? ''}
-                      ts={mEvent.getTs()}
-                      edited={!!editedEvent}
-                      getContent={getContent}
-                      mediaAutoLoad={mediaAutoLoad}
-                      urlPreview={showUrlPreview}
-                      htmlReactParserOptions={htmlReactParserOptions}
-                      linkifyOpts={linkifyOpts}
-                      outlineAttachment={messageLayout === MessageLayout.Bubble}
-                    />
-                  );
-                }
-                if (mEvent.getType() === MessageEvent.RoomMessageEncrypted)
-                  return (
-                    <Text>
-                      <MessageNotDecryptedContent />
-                    </Text>
-                  );
-                return (
-                  <Text>
-                    <MessageUnsupportedContent />
-                  </Text>
-                );
-              }}
-            </EncryptedContent>
-          </Message>
+                      const senderId = mEvent.getSender() ?? '';
+                      const senderDisplayName =
+                        getMemberDisplayName(room, senderId) ??
+                        getMxIdLocalPart(senderId) ??
+                        senderId;
+                      return (
+                        <RenderMessageContent
+                          displayName={senderDisplayName}
+                          msgType={mEvent.getContent().msgtype ?? ''}
+                          ts={mEvent.getTs()}
+                          edited={!!editedEvent}
+                          getContent={getContent}
+                          mediaAutoLoad={mediaAutoLoad}
+                          urlPreview={showUrlPreview}
+                          htmlReactParserOptions={htmlReactParserOptions}
+                          linkifyOpts={linkifyOpts}
+                          outlineAttachment={messageLayout === MessageLayout.Bubble}
+                        />
+                      );
+                    }
+                    if (mEvent.getType() === MessageEvent.RoomMessageEncrypted)
+                      return (
+                        <Text>
+                          <MessageNotDecryptedContent />
+                        </Text>
+                      );
+                    return (
+                      <Text>
+                        <MessageUnsupportedContent />
+                      </Text>
+                    );
+                  })()}
+                </Message>
+              );
+            }}
+          </EncryptedContent>
         );
       },
       [MessageEvent.Sticker]: (mEventId, mEvent, item, timelineSet, collapse) => {
@@ -1341,6 +1439,8 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
         );
       },
       [StateEvent.RoomName]: (mEventId, mEvent, item) => {
+        if (!showRoomChanges) return null;
+
         const highlighted = focusItem?.index === item && focusItem.highlight;
         const senderId = mEvent.getSender() ?? '';
         const senderName = getMemberDisplayName(room, senderId) || getMxIdLocalPart(senderId);
@@ -1384,6 +1484,8 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
         );
       },
       [StateEvent.RoomTopic]: (mEventId, mEvent, item) => {
+        if (!showRoomChanges) return null;
+
         const highlighted = focusItem?.index === item && focusItem.highlight;
         const senderId = mEvent.getSender() ?? '';
         const senderName = getMemberDisplayName(room, senderId) || getMxIdLocalPart(senderId);
@@ -1427,6 +1529,8 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
         );
       },
       [StateEvent.RoomAvatar]: (mEventId, mEvent, item) => {
+        if (!showRoomChanges) return null;
+
         const highlighted = focusItem?.index === item && focusItem.highlight;
         const senderId = mEvent.getSender() ?? '';
         const senderName = getMemberDisplayName(room, senderId) || getMxIdLocalPart(senderId);
@@ -1470,6 +1574,8 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
         );
       },
       [StateEvent.GroupCallMemberPrefix]: (mEventId, mEvent, item) => {
+        if (!showCallEvents) return null;
+
         const highlighted = focusItem?.index === item && focusItem.highlight;
         const senderId = mEvent.getSender() ?? '';
         const senderName = getMemberDisplayName(room, senderId) || getMxIdLocalPart(senderId);
@@ -1637,6 +1743,9 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
       return null;
     }
     if (mEvent.isRedacted() && !showHiddenEvents) {
+      return null;
+    }
+    if (!showDecryptionErrors && isDecryptionErrorEvent(mEvent)) {
       return null;
     }
 

@@ -228,7 +228,7 @@ export const RoomCard = as<'div', RoomCardProps>(
             </Badge>
           )}
         </Box>
-        <Box grow="Yes" direction="Column" gap="100">
+        <Box direction="Column" gap="100">
           <RoomCardName>{roomName}</RoomCardName>
           <RoomCardTopic onClick={openTopic} onKeyDown={onEnterOrSpace(openTopic)} tabIndex={0}>
             {roomTopic}

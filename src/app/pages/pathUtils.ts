@@ -15,9 +15,9 @@ import {
   INBOX_INVITES_PATH,
   INBOX_NOTIFICATIONS_PATH,
   INBOX_PATH,
-  REGISTER_PATH,
-  RESET_PASSWORD_PATH,
   ROOT_PATH,
+  RECENT_PATH,
+  RECENT_ROOM_PATH,
   SPACE_LOBBY_PATH,
   SPACE_PATH,
   SPACE_ROOM_PATH,
@@ -77,16 +77,6 @@ export const getLoginPath = (server?: string): string => {
   return generatePath(LOGIN_PATH, params);
 };
 
-export const getRegisterPath = (server?: string): string => {
-  const params = server ? { server: encodeURIComponent(server) } : undefined;
-  return generatePath(REGISTER_PATH, params);
-};
-
-export const getResetPasswordPath = (server?: string): string => {
-  const params = server ? { server: encodeURIComponent(server) } : undefined;
-  return generatePath(RESET_PASSWORD_PATH, params);
-};
-
 export const getHomePath = (): string => HOME_PATH;
 export const getHomeCreatePath = (): string => HOME_CREATE_PATH;
 export const getHomeJoinPath = (): string => HOME_JOIN_PATH;
@@ -98,6 +88,16 @@ export const getHomeRoomPath = (roomIdOrAlias: string, eventId?: string): string
   };
 
   return generatePath(HOME_ROOM_PATH, params);
+};
+
+export const getRecentPath = (): string => RECENT_PATH;
+export const getRecentRoomPath = (roomIdOrAlias: string, eventId?: string): string => {
+  const params = {
+    roomIdOrAlias: encodeURIComponent(roomIdOrAlias),
+    eventId: eventId ? encodeURIComponent(eventId) : null,
+  };
+
+  return generatePath(RECENT_ROOM_PATH, params);
 };
 
 export const getDirectPath = (): string => DIRECT_PATH;

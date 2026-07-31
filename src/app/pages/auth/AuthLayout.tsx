@@ -1,48 +1,21 @@
 import React, { useCallback, useEffect } from 'react';
 import { Box, Header, Scroll, Spinner, Text, color } from 'folds';
-import {
-  Outlet,
-  generatePath,
-  matchPath,
-  useLocation,
-  useNavigate,
-  useParams,
-} from 'react-router-dom';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import classNames from 'classnames';
 
 import { AuthFooter } from './AuthFooter';
 import * as css from './styles.css';
 import * as PatternsCss from '../../styles/Patterns.css';
-import {
-  clientAllowedServer,
-  clientDefaultServer,
-  useClientConfig,
-} from '../../hooks/useClientConfig';
+import { DEFAULT_HOMESERVER } from '../../hooks/useClientConfig';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
-import { LOGIN_PATH, REGISTER_PATH, RESET_PASSWORD_PATH } from '../paths';
-import CinnySVG from '../../../../public/res/svg/cinny.svg';
-import { ServerPicker } from './ServerPicker';
+import IIITIcon from '../../../iiit.png';
 import { AutoDiscoveryAction, autoDiscovery } from '../../cs-api';
-import { SpecVersionsLoader } from '../../components/SpecVersionsLoader';
-import { SpecVersionsProvider } from '../../hooks/useSpecVersions';
 import { AutoDiscoveryInfoProvider } from '../../hooks/useAutoDiscoveryInfo';
 import { AuthFlowsLoader } from '../../components/AuthFlowsLoader';
 import { AuthFlowsProvider } from '../../hooks/useAuthFlows';
 import { AuthServerProvider } from '../../hooks/useAuthServer';
 import { tryDecodeURIComponent } from '../../utils/dom';
-
-const currentAuthPath = (pathname: string): string => {
-  if (matchPath(LOGIN_PATH, pathname)) {
-    return LOGIN_PATH;
-  }
-  if (matchPath(RESET_PASSWORD_PATH, pathname)) {
-    return RESET_PASSWORD_PATH;
-  }
-  if (matchPath(REGISTER_PATH, pathname)) {
-    return REGISTER_PATH;
-  }
-  return LOGIN_PATH;
-};
+import { getLoginPath } from '../pathUtils';
 
 function AuthLayoutLoading({ message }: { message: string }) {
   return (
@@ -65,19 +38,15 @@ function AuthLayoutError({ message }: { message: string }) {
   );
 }
 
-export function AuthLayout() {
+type AuthLayoutProps = {
+  redirectToServerPath?: boolean;
+};
+
+export function AuthLayout({ redirectToServerPath = true }: AuthLayoutProps) {
   const navigate = useNavigate();
-  const location = useLocation();
   const { server: urlEncodedServer } = useParams();
 
-  const clientConfig = useClientConfig();
-
-  const defaultServer = clientDefaultServer(clientConfig);
-  let server: string = urlEncodedServer ? tryDecodeURIComponent(urlEncodedServer) : defaultServer;
-
-  if (!clientAllowedServer(clientConfig, server)) {
-    server = defaultServer;
-  }
+  const server = DEFAULT_HOMESERVER;
 
   const [discoveryState, discoverServer] = useAsyncCallback(
     useCallback(async (serverName: string) => {
@@ -95,29 +64,12 @@ export function AuthLayout() {
 
   // if server is mismatches with path server, update path
   useEffect(() => {
-    if (!urlEncodedServer || tryDecodeURIComponent(urlEncodedServer) !== server) {
-      navigate(
-        generatePath(currentAuthPath(location.pathname), {
-          server: encodeURIComponent(server),
-        }),
-        { replace: true }
-      );
-    }
-  }, [urlEncodedServer, navigate, location, server]);
+    if (!redirectToServerPath) return;
 
-  const selectServer = useCallback(
-    (newServer: string) => {
-      if (newServer === server) {
-        if (discoveryState.status === AsyncStatus.Loading) return;
-        discoverServer(server);
-        return;
-      }
-      navigate(
-        generatePath(currentAuthPath(location.pathname), { server: encodeURIComponent(newServer) })
-      );
-    },
-    [navigate, location, discoveryState, server, discoverServer]
-  );
+    if (!urlEncodedServer || tryDecodeURIComponent(urlEncodedServer) !== server) {
+      navigate(getLoginPath(server), { replace: true });
+    }
+  }, [redirectToServerPath, urlEncodedServer, navigate, server]);
 
   const [autoDiscoveryError, autoDiscoveryInfo] =
     discoveryState.status === AsyncStatus.Success ? discoveryState.data.response : [];
@@ -134,27 +86,16 @@ export function AuthLayout() {
         <Box direction="Column" className={css.AuthCard}>
           <Header className={css.AuthHeader} size="600" variant="Surface">
             <Box grow="Yes" direction="Row" gap="300" alignItems="Center">
-              <img className={css.AuthLogo} src={CinnySVG} alt="Cinny Logo" />
-              <Text size="H3">Cinny</Text>
+              <img className={css.AuthLogo} src={IIITIcon} alt="Matrix-IIIT logo" />
+              <Text size="H3">Matrix-IIIT</Text>
             </Box>
           </Header>
           <Box className={css.AuthCardContent} direction="Column">
-            <Box direction="Column" gap="100">
-              <Text as="label" size="L400" priority="300">
-                Homeserver
-              </Text>
-              <ServerPicker
-                server={server}
-                serverList={clientConfig.homeserverList ?? []}
-                allowCustomServer={clientConfig.allowCustomHomeservers}
-                onServerChange={selectServer}
-              />
-            </Box>
             {discoveryState.status === AsyncStatus.Loading && (
-              <AuthLayoutLoading message="Looking for homeserver..." />
+              <AuthLayoutLoading message="Connecting to Matrix-IIIT..." />
             )}
             {discoveryState.status === AsyncStatus.Error && (
-              <AuthLayoutError message="Failed to find homeserver." />
+              <AuthLayoutError message="Failed to connect to Matrix-IIIT." />
             )}
             {autoDiscoveryError?.action === AutoDiscoveryAction.FAIL_PROMPT && (
               <AuthLayoutError
@@ -162,41 +103,23 @@ export function AuthLayout() {
               />
             )}
             {autoDiscoveryError?.action === AutoDiscoveryAction.FAIL_ERROR && (
-              <AuthLayoutError message="Failed to connect. Homeserver configuration base_url appears invalid." />
+              <AuthLayoutError message="Matrix-IIIT returned an invalid connection address." />
             )}
             {discoveryState.status === AsyncStatus.Success && autoDiscoveryInfo && (
               <AuthServerProvider value={discoveryState.data.serverName}>
                 <AutoDiscoveryInfoProvider value={autoDiscoveryInfo}>
-                  <SpecVersionsLoader
-                    baseUrl={autoDiscoveryInfo['m.homeserver'].base_url}
-                    fallback={() => (
-                      <AuthLayoutLoading
-                        message={`Connecting to ${autoDiscoveryInfo['m.homeserver'].base_url}`}
-                      />
-                    )}
+                  <AuthFlowsLoader
+                    fallback={() => <AuthLayoutLoading message="Loading CAS login..." />}
                     error={() => (
-                      <AuthLayoutError message="Failed to connect. Either homeserver is unavailable at this moment or does not exist." />
+                      <AuthLayoutError message="Failed to load CAS login. Please try again." />
                     )}
                   >
-                    {(specVersions) => (
-                      <SpecVersionsProvider value={specVersions}>
-                        <AuthFlowsLoader
-                          fallback={() => (
-                            <AuthLayoutLoading message="Loading authentication flow..." />
-                          )}
-                          error={() => (
-                            <AuthLayoutError message="Failed to get authentication flow information." />
-                          )}
-                        >
-                          {(authFlows) => (
-                            <AuthFlowsProvider value={authFlows}>
-                              <Outlet />
-                            </AuthFlowsProvider>
-                          )}
-                        </AuthFlowsLoader>
-                      </SpecVersionsProvider>
+                    {(authFlows) => (
+                      <AuthFlowsProvider value={authFlows}>
+                        <Outlet />
+                      </AuthFlowsProvider>
                     )}
-                  </SpecVersionsLoader>
+                  </AuthFlowsLoader>
                 </AutoDiscoveryInfoProvider>
               </AuthServerProvider>
             )}

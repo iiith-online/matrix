@@ -1,4 +1,4 @@
 export * from './AuthLayout';
+export * from './CasLoginButton';
+export * from './CasLandingPage';
 export * from './login';
-export * from './register';
-export * from './reset-password';

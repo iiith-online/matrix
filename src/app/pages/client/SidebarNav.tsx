@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Scroll } from 'folds';
+import { useMatrixClient } from '../../hooks/useMatrixClient';
 
 import {
   Sidebar,
@@ -10,16 +11,20 @@ import {
 import {
   DirectTab,
   HomeTab,
+  RecentTab,
   SpaceTabs,
   InboxTab,
   ExploreTab,
   SettingsTab,
   UnverifiedTab,
   SearchTab,
+  InstallAppTab,
 } from './sidebar';
 import { CreateTab } from './sidebar/CreateTab';
+import { SyncStatus } from './SyncStatus';
 
 export function SidebarNav() {
+  const mx = useMatrixClient();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -28,6 +33,7 @@ export function SidebarNav() {
         scrollable={
           <Scroll ref={scrollRef} variant="Background" size="0">
             <SidebarStack>
+              <RecentTab />
               <HomeTab />
               <DirectTab />
             </SidebarStack>
@@ -46,6 +52,8 @@ export function SidebarNav() {
               <SearchTab />
               <UnverifiedTab />
               <InboxTab />
+              <InstallAppTab />
+              <SyncStatus mx={mx} />
               <SettingsTab />
             </SidebarStack>
           </>

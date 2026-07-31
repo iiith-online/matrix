@@ -11,14 +11,49 @@ type Session = {
   deviceId: string;
 };
 
+const LEGACY_SYNC_STORE_NAME = 'web-sync-store';
+const SYNC_STORE_NAME_PREFIX = 'web-sync-store-v2';
+const LEGACY_CRYPTO_STORE_NAME = 'crypto-store';
+
+const getSessionStoreScope = async (session: Session): Promise<string> => {
+  const scope = `${session.baseUrl}\u0000${session.userId}\u0000${session.deviceId}`;
+  const subtleCrypto = globalThis.crypto?.subtle;
+
+  if (subtleCrypto && typeof TextEncoder !== 'undefined') {
+    const digest = await subtleCrypto.digest('SHA-256', new TextEncoder().encode(scope));
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(
+      ''
+    );
+  }
+
+  // Keep the fallback deterministic without ever including the access token.
+  return encodeURIComponent(scope).replace(/%/g, '_');
+};
+
+const deleteIndexedDb = async (name: string): Promise<void> => {
+  if (!global.indexedDB) return;
+
+  await new Promise<void>((resolve) => {
+    const request = global.indexedDB.deleteDatabase(`matrix-js-sdk:${name}`);
+    request.onsuccess = () => resolve();
+    request.onerror = () => resolve();
+    request.onblocked = () => resolve();
+  });
+};
+
+const removeLegacySyncStore = () => deleteIndexedDb(LEGACY_SYNC_STORE_NAME);
+
 export const initClient = async (session: Session): Promise<MatrixClient> => {
+  const storeScope = await getSessionStoreScope(session);
   const indexedDBStore = new IndexedDBStore({
     indexedDB: global.indexedDB,
     localStorage: global.localStorage,
-    dbName: 'web-sync-store',
+    dbName: `${SYNC_STORE_NAME_PREFIX}-${storeScope}`,
   });
 
-  const legacyCryptoStore = new IndexedDBCryptoStore(global.indexedDB, 'crypto-store');
+  // Keep the legacy crypto name stable so matrix-js-sdk can migrate existing
+  // Olm data into Rust Crypto without losing encryption keys.
+  const legacyCryptoStore = new IndexedDBCryptoStore(global.indexedDB, LEGACY_CRYPTO_STORE_NAME);
 
   const mx = createClient({
     baseUrl: session.baseUrl,
@@ -33,6 +68,8 @@ export const initClient = async (session: Session): Promise<MatrixClient> => {
   });
 
   await indexedDBStore.startup();
+  // Do not leave the old unscoped message cache available to another session.
+  removeLegacySyncStore().catch(() => undefined);
   await mx.initRustCrypto();
 
   mx.setMaxListeners(50);
@@ -50,6 +87,7 @@ export const clearCacheAndReload = async (mx: MatrixClient) => {
   mx.stopClient();
   clearNavToActivePathStore(mx.getSafeUserId());
   await mx.store.deleteAllData();
+  await removeLegacySyncStore();
   window.location.reload();
 };
 
@@ -62,6 +100,7 @@ export const logoutClient = async (mx: MatrixClient) => {
     // ignore if failed to logout
   }
   await mx.clearStores();
+  await removeLegacySyncStore();
   window.localStorage.clear();
   window.location.reload();
 };

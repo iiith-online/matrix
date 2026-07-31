@@ -23,10 +23,6 @@ const copyFiles = {
       rename: 'pdf.worker.min.js',
     },
     {
-      src: 'netlify.toml',
-      dest: '',
-    },
-    {
       src: 'config.json',
       dest: '',
     },
@@ -35,12 +31,21 @@ const copyFiles = {
       dest: '',
     },
     {
-      src: 'public/res/android',
+      src: 'public/locales',
       dest: 'public/',
     },
     {
-      src: 'public/locales',
-      dest: 'public/',
+      src: 'public/res/svg/matrix-iiit.svg',
+      dest: 'public/res/svg',
+    },
+    {
+      src: 'public/pwa/*',
+      dest: 'pwa',
+    },
+    {
+      src: 'src/iiit.png',
+      dest: '',
+      rename: 'iiit.png',
     },
   ],
 };
