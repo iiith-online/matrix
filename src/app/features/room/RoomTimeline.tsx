@@ -611,6 +611,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   const [timeline, setTimeline] = useState<Timeline>(() =>
     eventId ? getEmptyTimeline() : getInitialTimeline(room)
   );
+  const [isCheckingRoom, setIsCheckingRoom] = useState(!eventId);
   const eventsLength = getTimelinesEventsCount(timeline.linkedTimelines);
   const liveTimelineLinked =
     timeline.linkedTimelines[timeline.linkedTimelines.length - 1] === getLiveTimeline(room);
@@ -625,6 +626,35 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   useEffect(() => {
     rememberTimelineChain(room.roomId, timeline.linkedTimelines);
   }, [room.roomId, timeline.linkedTimelines]);
+
+  useEffect(() => {
+    if (eventId) {
+      setIsCheckingRoom(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setIsCheckingRoom(true);
+    mx.getLatestTimeline(room.getUnfilteredTimelineSet())
+      .then(async (latestTimeline) => {
+        if (cancelled || !alive() || !latestTimeline) return;
+        if (latestTimeline !== getLiveTimeline(room)) {
+          await room.addLiveEvents(latestTimeline.getEvents(), {
+            fromCache: true,
+            addToState: false,
+          });
+        }
+        if (!cancelled && alive()) setTimeline(getInitialTimeline(room));
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setIsCheckingRoom(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [alive, eventId, mx, room]);
 
   const { handleTimelinePagination, isFetching } = useTimelinePagination(
     mx,
@@ -686,6 +716,11 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     room,
     useCallback(
       (mEvt: MatrixEvent) => {
+        if (!liveTimelineLinked) {
+          setTimeline(getInitialTimeline(room));
+          return;
+        }
+
         // if user is at bottom of timeline
         // keep paginating timeline and conditionally mark as read
         // otherwise we update timeline without paginating
@@ -719,7 +754,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
           setUnreadInfo(getRoomUnreadInfo(room));
         }
       },
-      [mx, room, unreadInfo, hideActivity]
+      [mx, room, unreadInfo, hideActivity, liveTimelineLinked]
     )
   );
 
@@ -1829,8 +1864,8 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   };
 
   return (
-    <Box grow="Yes" style={{ position: 'relative' }} aria-busy={isFetching}>
-      {isFetching && (
+    <Box grow="Yes" style={{ position: 'relative' }} aria-busy={isFetching || isCheckingRoom}>
+      {(isFetching || isCheckingRoom) && (
         <TimelineFloat position="Top" role="status" aria-live="polite">
           <Box
             alignItems="Center"
@@ -1843,7 +1878,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
             }}
           >
             <Spinner size="100" variant="Secondary" />
-            <Text size="T300">Loading messages…</Text>
+            <Text size="T300">{isCheckingRoom ? 'Checking messages…' : 'Loading messages…'}</Text>
           </Box>
         </TimelineFloat>
       )}
