@@ -209,6 +209,15 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
 
 const MEDIA_PATHS = ['/_matrix/client/v1/media/', '/_matrix/media/'];
 
+function mediaPath(url: string): boolean {
+  try {
+    const { pathname } = new URL(url);
+    return MEDIA_PATHS.some((p) => pathname.startsWith(p));
+  } catch {
+    return false;
+  }
+}
+
 function isShellRequest(request: Request): boolean {
   // Media must never enter the app-shell cache, including direct navigations.
   if (mediaPath(request.url)) return false;
@@ -220,15 +229,6 @@ function isShellRequest(request: Request): boolean {
     url.pathname.startsWith(scope.pathname) &&
     (url.pathname.includes('/assets/') || /\.(?:css|js|woff2?|png|svg|ico)$/.test(url.pathname))
   );
-}
-
-function mediaPath(url: string): boolean {
-  try {
-    const { pathname } = new URL(url);
-    return MEDIA_PATHS.some((p) => pathname.startsWith(p));
-  } catch {
-    return false;
-  }
 }
 
 function validMediaRequest(url: string, baseUrl: string): boolean {
