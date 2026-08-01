@@ -1,4 +1,4 @@
-import React, { MouseEventHandler, forwardRef, useState } from 'react';
+import React, { CSSProperties, MouseEventHandler, forwardRef, useState } from 'react';
 import { Room } from 'matrix-js-sdk';
 import {
   Avatar,
@@ -245,12 +245,14 @@ type RoomNavItemProps = {
   notificationMode?: RoomNotificationMode;
   showAvatar?: boolean;
   direct?: boolean;
+  style?: CSSProperties;
 };
 export function RoomNavItem({
   room,
   selected,
   showAvatar,
   direct,
+  style,
   notificationMode,
   linkPath,
 }: RoomNavItemProps) {
@@ -329,6 +331,7 @@ export function RoomNavItem({
       aria-selected={selected}
       data-hover={!!menuAnchor}
       onContextMenu={handleContextMenu}
+      style={style}
       {...hoverProps}
       {...focusWithinProps}
     >

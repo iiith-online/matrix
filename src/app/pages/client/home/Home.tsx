@@ -249,7 +249,7 @@ export function Home() {
   const recentVirtualizer = useVirtualizer({
     count: sortedRecentRooms.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 38,
+    estimateSize: () => 44,
     overscan: 10,
   });
 
@@ -273,7 +273,7 @@ export function Home() {
         <PageNavContent scrollRef={scrollRef}>
           <Box direction="Column" gap="300">
             <NavCategory>
-              <NavCategoryHeader>
+              <NavCategoryHeader style={{ marginBottom: config.space.S100 }}>
                 <RoomNavCategoryButton
                   closed={recentCategoryClosed}
                   data-category-id={RECENT_CATEGORY_ID}
@@ -305,6 +305,7 @@ export function Home() {
                         selected={selectedRoomId === roomId}
                         showAvatar={direct}
                         direct={direct}
+                        style={{ minHeight: toRem(44) }}
                         linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
                         notificationMode={getRoomNotificationMode(
                           notificationPreferences,
