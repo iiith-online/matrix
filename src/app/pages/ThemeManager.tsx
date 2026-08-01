@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useLayoutEffect } from 'react';
 import { color, configClass, varsClass } from 'folds';
 import {
   DarkTheme,
@@ -14,7 +14,7 @@ import { settingsAtom } from '../state/settings';
 export function UnAuthRouteThemeManager() {
   const systemThemeKind = useSystemThemeKind();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.body.className = '';
     document.body.classList.add(configClass, varsClass);
     if (systemThemeKind === ThemeKind.Dark) {
@@ -33,7 +33,7 @@ export function AuthRouteThemeManager({ children }: { children: ReactNode }) {
   const activeTheme = useActiveTheme();
   const [monochromeMode] = useSetting(settingsAtom, 'monochromeMode');
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.body.className = '';
     document.body.classList.add(configClass, varsClass);
 
