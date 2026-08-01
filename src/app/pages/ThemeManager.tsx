@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect } from 'react';
-import { configClass, varsClass } from 'folds';
+import { color, configClass, varsClass } from 'folds';
 import {
   DarkTheme,
   LightTheme,
@@ -23,6 +23,7 @@ export function UnAuthRouteThemeManager() {
     if (systemThemeKind === ThemeKind.Light) {
       document.body.classList.add(...LightTheme.classNames);
     }
+    document.body.style.backgroundColor = color.Background.Container;
   }, [systemThemeKind]);
 
   return null;
@@ -43,6 +44,7 @@ export function AuthRouteThemeManager({ children }: { children: ReactNode }) {
     } else {
       document.body.style.filter = '';
     }
+    document.body.style.backgroundColor = color.Background.Container;
   }, [activeTheme, monochromeMode]);
 
   return <ThemeContextProvider value={activeTheme}>{children}</ThemeContextProvider>;
