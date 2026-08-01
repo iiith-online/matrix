@@ -336,6 +336,7 @@ const useTimelinePagination = (
   const alive = useAlive();
   const [isFetching, setIsFetching] = useState(false);
   const [paginationError, setPaginationError] = useState(false);
+  const [paginationDirection, setPaginationDirection] = useState<Direction>(Direction.Backward);
 
   const handleTimelinePagination = useMemo(() => {
     let fetching = false;
@@ -390,6 +391,7 @@ const useTimelinePagination = (
 
       fetching = true;
       setIsFetching(true);
+      setPaginationDirection(backwards ? Direction.Backward : Direction.Forward);
       setPaginationError(false);
       try {
         const [err] = await to(
@@ -424,7 +426,12 @@ const useTimelinePagination = (
       }
     };
   }, [mx, alive, setTimeline, limit]);
-  return { handleTimelinePagination, isFetching, paginationError };
+  return {
+    handleTimelinePagination,
+    isFetching,
+    paginationError,
+    paginationDirection,
+  };
 };
 
 const useLiveEventArrive = (room: Room, onArrive: (mEvent: MatrixEvent) => void) => {
@@ -666,12 +673,12 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     };
   }, [alive, eventId, mx, room, timelineRefreshKey]);
 
-  const { handleTimelinePagination, isFetching, paginationError } = useTimelinePagination(
-    mx,
-    timeline,
-    setTimeline,
-    PAGINATION_LIMIT
-  );
+  const {
+    handleTimelinePagination,
+    isFetching,
+    paginationError,
+    paginationDirection,
+  } = useTimelinePagination(mx, timeline, setTimeline, PAGINATION_LIMIT);
 
   const getScrollElement = useCallback(() => scrollRef.current, []);
 
@@ -1899,8 +1906,12 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
             radii="Pill"
             outlined
             onClick={() => {
-              setTimelineRefreshKey((key) => key + 1);
-              setTimelineError(false);
+              if (timelineError) {
+                setTimelineRefreshKey((key) => key + 1);
+                setTimelineError(false);
+                return;
+              }
+              handleTimelinePagination(paginationDirection === Direction.Backward);
             }}
           >
             <Text size="L400">
@@ -1908,6 +1919,21 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
                 ? 'Couldn’t refresh messages. Showing cached messages. Retry'
                 : 'Couldn’t load more messages. Retry'}
             </Text>
+          </Chip>
+        </TimelineFloat>
+      )}
+      {canPaginateBack && rangeAtStart && !isFetching && !timelineError && !paginationError && (
+        <TimelineFloat position="Top">
+          <Chip
+            variant="SurfaceVariant"
+            radii="Pill"
+            outlined
+            before={<Icon size="50" src={Icons.ChevronTop} />}
+            onClick={() => {
+              handleTimelinePagination(true);
+            }}
+          >
+            <Text size="L400">Load earlier messages</Text>
           </Chip>
         </TimelineFloat>
       )}

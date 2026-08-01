@@ -72,7 +72,6 @@ import { RoomSettingsPage } from '../../state/roomSettings';
 import { useCallEmbed, useCallStart } from '../../hooks/useCallEmbed';
 import { useLivekitSupport } from '../../hooks/useLivekitSupport';
 import { webRTCSupported } from '../../utils/rtc';
-import { SyncStatusDot } from '../../pages/client/SyncStatus';
 
 type RoomMenuProps = {
   room: Room;
@@ -351,6 +350,7 @@ function CallButton() {
             }}
             disabled={inAnotherCall || callStarted}
             aria-pressed={!!menuAnchor}
+            aria-label="Start a call"
           >
             <Icon size="400" src={Icons.VideoCamera} filled={!!menuAnchor} />
           </IconButton>
@@ -417,6 +417,9 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
     : undefined;
 
   const [peopleDrawer, setPeopleDrawer] = useSetting(settingsAtom, 'isPeopleDrawer');
+  let memberButtonLabel = 'Show members';
+  if (callView) memberButtonLabel = 'Members';
+  else if (peopleDrawer) memberButtonLabel = 'Hide members';
 
   const handleSearchClick = () => {
     const searchParams: _SearchPathSearchParams = {
@@ -456,7 +459,7 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
           <BackRouteHandler>
             {(onBack) => (
               <Box shrink="No" alignItems="Center">
-                <IconButton fill="None" onClick={onBack}>
+                <IconButton fill="None" aria-label="Back to conversations" onClick={onBack}>
                   <Icon src={Icons.ArrowLeft} />
                 </IconButton>
               </Box>
@@ -481,7 +484,6 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
               <Text size={topic ? 'H5' : 'H3'} truncate>
                 {name}
               </Text>
-              <SyncStatusDot mx={mx} />
             </Box>
             {topic && (
               <UseStateProvider initial={false}>
@@ -535,7 +537,12 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
               }
             >
               {(triggerRef) => (
-                <IconButton fill="None" ref={triggerRef} onClick={handleSearchClick}>
+                <IconButton
+                  fill="None"
+                  ref={triggerRef}
+                  aria-label="Search messages in this room"
+                  onClick={handleSearchClick}
+                >
                   <Icon size="400" src={Icons.Search} />
                 </IconButton>
               )}
@@ -557,6 +564,7 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
                 onClick={handleOpenPinMenu}
                 ref={triggerRef}
                 aria-pressed={!!pinMenuAnchor}
+                aria-label="Pinned messages"
               >
                 {pinnedEvents.length > 0 && (
                   <Badge
@@ -616,7 +624,12 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
               }
             >
               {(triggerRef) => (
-                <IconButton fill="None" ref={triggerRef} onClick={handleMemberToggle}>
+                <IconButton
+                  fill="None"
+                  ref={triggerRef}
+                  aria-label={memberButtonLabel}
+                  onClick={handleMemberToggle}
+                >
                   <Icon size="400" src={Icons.User} />
                 </IconButton>
               )}
@@ -639,6 +652,7 @@ export function RoomViewHeader({ callView }: { callView?: boolean }) {
                 onClick={handleOpenMenu}
                 ref={triggerRef}
                 aria-pressed={!!menuAnchor}
+                aria-label="More room options"
               >
                 <Icon size="400" src={Icons.VerticalDots} filled={!!menuAnchor} />
               </IconButton>

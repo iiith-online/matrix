@@ -98,6 +98,7 @@ export function DirectTab() {
           <SidebarAvatar
             as="button"
             ref={triggerRef}
+            aria-label="Direct messages"
             outlined
             onClick={handleDirectClick}
             onContextMenu={handleContextMenu}

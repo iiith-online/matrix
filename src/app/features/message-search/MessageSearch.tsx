@@ -1,5 +1,16 @@
 import React, { RefObject, useEffect, useMemo, useRef } from 'react';
-import { Text, Box, Icon, Icons, config, Spinner, IconButton, Line, toRem } from 'folds';
+import {
+  Text,
+  Box,
+  Button,
+  Icon,
+  Icons,
+  config,
+  Spinner,
+  IconButton,
+  Line,
+  toRem,
+} from 'folds';
 import { useAtomValue } from 'jotai';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -96,7 +107,15 @@ export function MessageSearch({
 
   const searchMessages = useMessageSearch(msgSearchParams);
 
-  const { status, data, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const {
+    status,
+    data,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useInfiniteQuery({
     enabled: !!msgSearchParams.term,
     queryKey: [
       'search',
@@ -319,6 +338,9 @@ export function MessageSearch({
         >
           <Text size="L400">{error.name}</Text>
           <Text size="T300">{error.message}</Text>
+          <Button variant="Secondary" fill="Soft" size="300" onClick={() => refetch()}>
+            <Text size="B300">Retry search</Text>
+          </Button>
         </Box>
       )}
     </Box>

@@ -55,6 +55,7 @@ function UnverifiedIndicator() {
                 className={unverified ? css.UnverifiedAvatar : css.UnverifiedOtherAvatar}
                 as="button"
                 ref={triggerRef}
+                aria-label={unverified ? 'Unverified device' : 'Unverified devices'}
                 outlined
                 onClick={() => setSettings(true)}
               >

@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Icon,
   Icons,
   Overlay,
@@ -11,14 +12,27 @@ import {
   config,
 } from 'folds';
 import React, { useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MatrixError } from 'matrix-js-sdk/lib/http-api/errors';
 import { useAutoDiscoveryInfo } from '../../../hooks/useAutoDiscoveryInfo';
+import { useAuthServer } from '../../../hooks/useAuthServer';
 import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { CustomLoginResponse, LoginError, login, useLoginComplete } from './loginUtil';
+import { getLoginPath } from '../../pathUtils';
 
-function LoginTokenError({ message }: { message: string }) {
+function LoginTokenError({
+  message,
+  onRetry,
+  onBack,
+}: {
+  message: string;
+  onRetry: () => void;
+  onBack: () => void;
+}) {
   return (
     <Box
+      role="alert"
+      aria-live="assertive"
       style={{
         backgroundColor: color.Critical.Container,
         color: color.Critical.OnContainer,
@@ -35,15 +49,40 @@ function LoginTokenError({ message }: { message: string }) {
         <Text size="T300">
           <b>{message}</b>
         </Text>
+        <Box gap="200" wrap="Wrap">
+          <Button size="300" variant="Critical" fill="Soft" onClick={onRetry}>
+            <Text size="B300">Try again</Text>
+          </Button>
+          <Button size="300" variant="Secondary" fill="Soft" onClick={onBack}>
+            <Text size="B300">Back to sign in</Text>
+          </Button>
+        </Box>
       </Box>
     </Box>
   );
 }
 
+const getLoginTokenErrorMessage = (errorCode: string): string => {
+  switch (errorCode) {
+    case LoginError.Forbidden:
+      return 'Invalid login token.';
+    case LoginError.UserDeactivated:
+      return 'This account has been deactivated.';
+    case LoginError.InvalidRequest:
+      return 'The login request was invalid.';
+    case LoginError.RateLimited:
+      return 'Too many login attempts. Please try again later.';
+    default:
+      return 'Login failed for an unknown reason.';
+  }
+};
+
 type TokenLoginProps = {
   token: string;
 };
 export function TokenLogin({ token }: TokenLoginProps) {
+  const navigate = useNavigate();
+  const server = useAuthServer();
   const discovery = useAutoDiscoveryInfo();
   const baseUrl = discovery['m.homeserver'].base_url;
 
@@ -59,26 +98,19 @@ export function TokenLogin({ token }: TokenLoginProps) {
 
   useLoginComplete(loginState.status === AsyncStatus.Success ? loginState.data : undefined);
 
+  const errorMessage =
+    loginState.status === AsyncStatus.Error
+      ? getLoginTokenErrorMessage(loginState.error.errcode ?? LoginError.Unknown)
+      : undefined;
+
   return (
     <>
-      {loginState.status === AsyncStatus.Error && (
-        <>
-          {loginState.error.errcode === LoginError.Forbidden && (
-            <LoginTokenError message="Invalid login token." />
-          )}
-          {loginState.error.errcode === LoginError.UserDeactivated && (
-            <LoginTokenError message="This account has been deactivated." />
-          )}
-          {loginState.error.errcode === LoginError.InvalidRequest && (
-            <LoginTokenError message="Failed to login. Part of your request data is invalid." />
-          )}
-          {loginState.error.errcode === LoginError.RateLimited && (
-            <LoginTokenError message="Failed to login. Your login request has been rate-limited by server, Please try after some time." />
-          )}
-          {loginState.error.errcode === LoginError.Unknown && (
-            <LoginTokenError message="Failed to login. Unknown reason." />
-          )}
-        </>
+      {errorMessage && (
+        <LoginTokenError
+          message={errorMessage}
+          onRetry={() => startLogin(baseUrl, token)}
+          onBack={() => navigate(getLoginPath(server))}
+        />
       )}
       <Overlay open={loginState.status !== AsyncStatus.Error} backdrop={<OverlayBackdrop />}>
         <OverlayCenter>

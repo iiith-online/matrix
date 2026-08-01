@@ -1,4 +1,11 @@
-import React, { MouseEventHandler, forwardRef, useMemo, useRef, useState } from 'react';
+import React, {
+  MouseEventHandler,
+  forwardRef,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Avatar,
@@ -35,7 +42,6 @@ import {
   getHomeCreatePath,
   getHomeRoomPath,
   getHomeSearchPath,
-  getRecentPath,
   withSearchParam,
 } from '../../pathUtils';
 import { getCanonicalAliasOrRoomId } from '../../../utils/matrix';
@@ -44,9 +50,10 @@ import {
   useHomeCreateSelected,
   useHomeSearchSelected,
 } from '../../../hooks/router/useHomeSelected';
-import { useRecentSelected } from '../../../hooks/router/useRecentSelected';
 import { useHomeRooms } from './useHomeRooms';
+import { useRecentRooms } from '../recent/useRecentRooms';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
+import { mDirectAtom } from '../../../state/mDirectList';
 import { VirtualTile } from '../../../components/virtualizer';
 import { RoomNavCategoryButton, RoomNavItem } from '../../../features/room-nav';
 import { makeNavCategoryId } from '../../../state/closedNavCategories';
@@ -196,33 +203,55 @@ function HomeEmpty() {
 }
 
 const DEFAULT_CATEGORY_ID = makeNavCategoryId('home', 'room');
+const RECENT_CATEGORY_ID = makeNavCategoryId('home', 'recent');
 export function Home() {
   const mx = useMatrixClient();
   useNavToActivePathMapper('home');
   const scrollRef = useRef<HTMLDivElement>(null);
   const rooms = useHomeRooms();
+  const recentRooms = useRecentRooms();
+  const mDirects = useAtomValue(mDirectAtom);
   const notificationPreferences = useRoomsNotificationPreferencesContext();
-  const roomToUnread = useAtomValue(roomToUnreadAtom);
   const navigate = useNavigate();
 
   const selectedRoomId = useSelectedRoom();
   const createRoomSelected = useHomeCreateSelected();
   const searchSelected = useHomeSearchSelected();
-  const recentSelected = useRecentSelected();
-  const noRoomToDisplay = rooms.length === 0;
+  const noRoomToDisplay = rooms.length === 0 && recentRooms.length === 0;
   const [closedCategories, setClosedCategories] = useAtom(useClosedNavCategoriesAtom());
+  const categoryDefaultsApplied = useRef(false);
+
+  useEffect(() => {
+    if (categoryDefaultsApplied.current) return;
+    categoryDefaultsApplied.current = true;
+    if (!closedCategories.has(DEFAULT_CATEGORY_ID)) {
+      setClosedCategories({ type: 'PUT', categoryId: DEFAULT_CATEGORY_ID });
+    }
+  }, [closedCategories, setClosedCategories]);
+
+  const recentCategoryClosed = closedCategories.has(RECENT_CATEGORY_ID);
+  const roomsCategoryClosed =
+    !categoryDefaultsApplied.current || closedCategories.has(DEFAULT_CATEGORY_ID);
+
+  const sortedRecentRooms = useMemo(
+    () =>
+      recentCategoryClosed
+        ? []
+        : Array.from(recentRooms).sort(factoryRoomIdByActivity(mx)),
+    [mx, recentCategoryClosed, recentRooms]
+  );
 
   const sortedRooms = useMemo(() => {
-    const items = Array.from(rooms).sort(
-      closedCategories.has(DEFAULT_CATEGORY_ID)
-        ? factoryRoomIdByActivity(mx)
-        : factoryRoomIdByAtoZ(mx)
-    );
-    if (closedCategories.has(DEFAULT_CATEGORY_ID)) {
-      return items.filter((rId) => roomToUnread.has(rId) || rId === selectedRoomId);
-    }
-    return items;
-  }, [mx, rooms, closedCategories, roomToUnread, selectedRoomId]);
+    if (roomsCategoryClosed) return [];
+    return Array.from(rooms).sort(factoryRoomIdByAtoZ(mx));
+  }, [mx, rooms, roomsCategoryClosed]);
+
+  const recentVirtualizer = useVirtualizer({
+    count: sortedRecentRooms.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 38,
+    overscan: 10,
+  });
 
   const virtualizer = useVirtualizer({
     count: sortedRooms.length,
@@ -244,22 +273,50 @@ export function Home() {
         <PageNavContent scrollRef={scrollRef}>
           <Box direction="Column" gap="300">
             <NavCategory>
-              <NavItem variant="Background" radii="400" aria-selected={recentSelected}>
-                <NavLink to={getRecentPath()}>
-                  <NavItemContent>
-                    <Box as="span" grow="Yes" alignItems="Center" gap="200">
-                      <Avatar size="200" radii="400">
-                        <Icon src={Icons.RecentClock} size="100" filled={recentSelected} />
-                      </Avatar>
-                      <Box as="span" grow="Yes">
-                        <Text as="span" size="Inherit" truncate>
-                          Recent
-                        </Text>
-                      </Box>
-                    </Box>
-                  </NavItemContent>
-                </NavLink>
-              </NavItem>
+              <NavCategoryHeader>
+                <RoomNavCategoryButton
+                  closed={recentCategoryClosed}
+                  data-category-id={RECENT_CATEGORY_ID}
+                  onClick={handleCategoryClick}
+                >
+                  All conversations
+                </RoomNavCategoryButton>
+              </NavCategoryHeader>
+              <div
+                style={{
+                  position: 'relative',
+                  height: recentVirtualizer.getTotalSize(),
+                }}
+              >
+                {recentVirtualizer.getVirtualItems().map((vItem) => {
+                  const roomId = sortedRecentRooms[vItem.index];
+                  const room = mx.getRoom(roomId);
+                  if (!room) return null;
+
+                  const direct = mDirects.has(roomId);
+                  return (
+                    <VirtualTile
+                      virtualItem={vItem}
+                      key={roomId}
+                      ref={recentVirtualizer.measureElement}
+                    >
+                      <RoomNavItem
+                        room={room}
+                        selected={selectedRoomId === roomId}
+                        showAvatar={direct}
+                        direct={direct}
+                        linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
+                        notificationMode={getRoomNotificationMode(
+                          notificationPreferences,
+                          room.roomId
+                        )}
+                      />
+                    </VirtualTile>
+                  );
+                })}
+              </div>
+            </NavCategory>
+            <NavCategory>
               <NavItem variant="Background" radii="400" aria-selected={createRoomSelected}>
                 <NavButton onClick={() => navigate(getHomeCreatePath())}>
                   <NavItemContent>

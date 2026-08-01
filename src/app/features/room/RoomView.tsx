@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from 'react';
-import { Box, Text, config } from 'folds';
+import { Box, Button, Text, color, config } from 'folds';
 import { EventType } from 'matrix-js-sdk';
 import { ReactEditor } from 'slate-react';
 import { isKeyHotkey } from 'is-hotkey';
@@ -22,6 +22,7 @@ import { useSetting } from '../../state/hooks/settings';
 import { useRoomPermissions } from '../../hooks/useRoomPermissions';
 import { useRoomCreators } from '../../hooks/useRoomCreators';
 import { useRoom } from '../../hooks/useRoom';
+import { useSyncStatus } from '../../pages/client/SyncStatus';
 
 const FN_KEYS_REGEX = /^F\d+$/;
 const shouldFocusMessageField = (evt: KeyboardEvent): boolean => {
@@ -65,6 +66,7 @@ export function RoomView({ eventId }: { eventId?: string }) {
   const editor = useEditor();
 
   const mx = useMatrixClient();
+  const syncStatus = useSyncStatus(mx);
 
   const tombstoneEvent = useStateEvent(room, StateEvent.RoomTombstone);
   const powerLevels = usePowerLevelsContext();
@@ -92,6 +94,29 @@ export function RoomView({ eventId }: { eventId?: string }) {
 
   return (
     <Page ref={roomViewRef}>
+      {(syncStatus.label === 'Offline' || syncStatus.label === 'Disconnected') && (
+        <Box
+          role="alert"
+          aria-live="polite"
+          alignItems="Center"
+          justifyContent="SpaceBetween"
+          gap="300"
+          style={{
+            padding: `${config.space.S200} ${config.space.S400}`,
+            background: color.Critical.Container,
+            color: color.Critical.OnContainer,
+          }}
+        >
+          <Text size="T300">
+            {syncStatus.label === 'Offline'
+              ? 'You are offline. Messages may not send until you reconnect.'
+              : 'Connection lost. Retry sync to check for new messages.'}
+          </Text>
+          <Button size="300" variant="Critical" fill="Soft" onClick={() => mx.retryImmediately()}>
+            <Text size="B300">Retry</Text>
+          </Button>
+        </Box>
+      )}
       <Box grow="Yes" direction="Column">
         <RoomTimeline
           key={roomId}

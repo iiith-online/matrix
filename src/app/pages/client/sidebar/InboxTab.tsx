@@ -47,7 +47,13 @@ export function InboxTab() {
     <SidebarItem active={inboxSelected}>
       <SidebarItemTooltip tooltip="Inbox">
         {(triggerRef) => (
-          <SidebarAvatar as="button" ref={triggerRef} outlined onClick={handleInboxClick}>
+          <SidebarAvatar
+            as="button"
+            ref={triggerRef}
+            aria-label="Inbox"
+            outlined
+            onClick={handleInboxClick}
+          >
             <Icon src={Icons.Inbox} filled={inboxSelected} />
           </SidebarAvatar>
         )}

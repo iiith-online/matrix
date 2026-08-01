@@ -100,6 +100,7 @@ export function HomeTab() {
           <SidebarAvatar
             as="button"
             ref={triggerRef}
+            aria-label="Home"
             outlined
             onClick={handleHomeClick}
             onContextMenu={handleContextMenu}

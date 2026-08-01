@@ -448,6 +448,7 @@ function SpaceTab({
                 as="button"
                 data-id={space.roomId}
                 ref={triggerRef}
+                aria-label={space.name}
                 size={folder ? '300' : '400'}
                 onClick={onClick}
                 onContextMenu={handleContextMenu}
@@ -522,7 +523,13 @@ function OpenedSpaceFolder({ folder, onClose, children }: OpenedSpaceFolderProps
     >
       <SidebarFolderDropTarget ref={aboveTargetRef} position="Top" />
       <SidebarAvatar size="300">
-        <IconButton data-id={folder.id} size="300" variant="Background" onClick={onClose}>
+        <IconButton
+          data-id={folder.id}
+          size="300"
+          variant="Background"
+          aria-label={`Close ${folder.name ?? 'space folder'}`}
+          onClick={onClose}
+        >
           <Icon size="400" src={Icons.ChevronTop} filled />
         </IconButton>
       </SidebarAvatar>
@@ -571,7 +578,13 @@ function ClosedSpaceFolder({
         >
           <SidebarItemTooltip tooltip={disabled ? undefined : tooltipName}>
             {(tooltipRef) => (
-              <SidebarFolder data-id={folder.id} as="button" ref={tooltipRef} onClick={onOpen}>
+              <SidebarFolder
+                data-id={folder.id}
+                as="button"
+                ref={tooltipRef}
+                aria-label={`Open ${tooltipName}`}
+                onClick={onOpen}
+              >
                 {folder.content.map((sId) => {
                   const space = mx.getRoom(sId);
                   if (!space) return null;

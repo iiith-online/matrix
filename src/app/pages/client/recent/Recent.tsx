@@ -1,5 +1,6 @@
 import React, { useMemo, useRef } from 'react';
-import { Box, Icon, Icons, Text } from 'folds';
+import { Box, Button, Icon, Icons, Text } from 'folds';
+import { useNavigate } from 'react-router-dom';
 import { useAtomValue } from 'jotai';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
@@ -18,13 +19,15 @@ import { getCanonicalAliasOrRoomId } from '../../../utils/matrix';
 import { factoryRoomIdByActivity } from '../../../utils/sort';
 import { mDirectAtom } from '../../../state/mDirectList';
 import { useRecentRooms } from './useRecentRooms';
-import { getRecentRoomPath } from '../../pathUtils';
+import { getExplorePath, getHomeCreatePath, getRecentRoomPath } from '../../pathUtils';
 import {
   getRoomNotificationMode,
   useRoomsNotificationPreferencesContext,
 } from '../../../hooks/useRoomsNotificationPreferences';
 
 function RecentEmpty() {
+  const navigate = useNavigate();
+
   return (
     <NavEmptyCenter>
       <NavEmptyLayout
@@ -38,6 +41,21 @@ function RecentEmpty() {
           <Text size="T300" align="Center">
             Your joined rooms and direct chats will appear here.
           </Text>
+        }
+        options={
+          <Box gap="200" wrap="Wrap" justifyContent="Center">
+            <Button onClick={() => navigate(getExplorePath())} variant="Secondary" size="300">
+              <Text size="B300">Explore community</Text>
+            </Button>
+            <Button
+              onClick={() => navigate(getHomeCreatePath())}
+              variant="Secondary"
+              fill="Soft"
+              size="300"
+            >
+              <Text size="B300">Create room</Text>
+            </Button>
+          </Box>
         }
       />
     </NavEmptyCenter>
@@ -68,7 +86,7 @@ export function Recent() {
       <PageNavHeader>
         <Box grow="Yes" alignItems="Center">
           <Text size="H4" truncate>
-            Recent
+            All conversations
           </Text>
         </Box>
       </PageNavHeader>

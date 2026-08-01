@@ -16,7 +16,13 @@ export function ExploreTab() {
     <SidebarItem active={exploreSelected}>
       <SidebarItemTooltip tooltip="Explore Community">
         {(triggerRef) => (
-          <SidebarAvatar as="button" ref={triggerRef} outlined onClick={handleExploreClick}>
+          <SidebarAvatar
+            as="button"
+            ref={triggerRef}
+            aria-label="Explore community"
+            outlined
+            onClick={handleExploreClick}
+          >
             <Icon src={Icons.Explore} filled={exploreSelected} />
           </SidebarAvatar>
         )}

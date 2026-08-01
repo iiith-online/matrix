@@ -141,7 +141,11 @@ export function Settings({ initialPage, requestClose }: SettingsProps) {
               </Box>
               <Box shrink="No">
                 {screenSize === ScreenSize.Mobile && (
-                  <IconButton onClick={requestClose} variant="Background">
+                  <IconButton
+                    onClick={requestClose}
+                    variant="Background"
+                    aria-label="Close settings"
+                  >
                     <Icon src={Icons.Cross} />
                   </IconButton>
                 )}

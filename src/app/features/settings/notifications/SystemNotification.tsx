@@ -151,7 +151,8 @@ export function SystemNotification() {
   const pushDescription = {
     unsupported: 'Web Push is not supported here. On iPhone or iPad, install the app first.',
     'permission-required': 'Enable reliable notifications when this app is closed.',
-    blocked: 'Notification permission is blocked in your device settings.',
+    blocked:
+      'Notification permission is blocked. Allow it in this site’s browser settings, then choose Check again.',
     inactive: 'Push notifications are disconnected on this device.',
     active: 'Push notifications are active on this device.',
     stale: 'The saved push subscription needs to be enabled again.',
@@ -187,7 +188,7 @@ export function SystemNotification() {
           }
           after={
             <Box gap="100">
-              {pushStatus === 'active' ? (
+              {pushStatus === 'active' && (
                 <>
                   <Button
                     style={{ minHeight: 44 }}
@@ -214,12 +215,24 @@ export function SystemNotification() {
                     <Text size="B300">Disconnect</Text>
                   </Button>
                 </>
-              ) : (
+              )}
+              {pushStatus === 'blocked' && (
                 <Button
                   style={{ minHeight: 44 }}
                   size="300"
                   radii="300"
-                  disabled={pushBusy || pushStatus === 'unsupported' || pushStatus === 'blocked'}
+                  disabled={pushBusy}
+                  onClick={refreshPushStatus}
+                >
+                  <Text size="B300">Check again</Text>
+                </Button>
+              )}
+              {pushStatus !== 'active' && pushStatus !== 'blocked' && (
+                <Button
+                  style={{ minHeight: 44 }}
+                  size="300"
+                  radii="300"
+                  disabled={pushBusy || pushStatus === 'unsupported'}
                   onClick={() =>
                     runPushAction(async () => {
                       await enablePushNotifications(mx, getOriginBaseUrl(hashRouter));
@@ -255,7 +268,7 @@ export function SystemNotification() {
       >
         <SettingTile
           title="Notification Sound"
-          description="Play sound when new message arrive."
+          description="Play a sound when new messages arrive."
           after={<Switch value={isNotificationSounds} onChange={setIsNotificationSounds} />}
         />
       </SequenceCard>

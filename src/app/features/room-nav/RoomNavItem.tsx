@@ -57,6 +57,7 @@ import { useCallMembers, useCallSession } from '../../hooks/useCall';
 import { useCallEmbed, useCallStart } from '../../hooks/useCallEmbed';
 import { callChatAtom } from '../../state/callEmbed';
 import { useCallPreferencesAtom } from '../../state/hooks/callPreferences';
+import { roomIdToMsgDraftAtomFamily } from '../../state/room/roomInputDrafts';
 import { useAutoDiscoveryInfo } from '../../hooks/useAutoDiscoveryInfo';
 import { livekitSupport } from '../../hooks/useLivekitSupport';
 import { StateEvent } from '../../../types/matrix/room';
@@ -260,11 +261,16 @@ export function RoomNavItem({
   const { focusWithinProps } = useFocusWithin({ onFocusWithinChange: setHover });
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
   const unread = useRoomUnread(room.roomId, roomToUnreadAtom);
+  const hasDraft = useAtomValue(roomIdToMsgDraftAtomFamily(room.roomId)).length > 0;
   const typingMember = useRoomTypingMember(room.roomId).filter(
     (receipt) => receipt.userId !== mx.getUserId()
   );
 
   const roomName = useRoomName(room);
+  const lastEvent = room.getLastLiveEvent();
+  const lastBody = lastEvent?.getContent().body;
+  const preview = typeof lastBody === 'string' ? lastBody.replace(/\s+/g, ' ').trim() : undefined;
+  const lastActivityLabel = lastEvent ? new Date(lastEvent.getTs()).toLocaleString() : undefined;
 
   const handleContextMenu: MouseEventHandler<HTMLElement> = (evt) => {
     evt.preventDefault();
@@ -326,7 +332,12 @@ export function RoomNavItem({
       {...hoverProps}
       {...focusWithinProps}
     >
-      <NavLink to={linkPath} onClick={room.isCallRoom() ? handleStartCall : undefined}>
+      <NavLink
+        to={linkPath}
+        title={lastActivityLabel}
+        aria-label={[roomName, preview, lastActivityLabel].filter(Boolean).join(' · ')}
+        onClick={room.isCallRoom() ? handleStartCall : undefined}
+      >
         <NavItemContent>
           <Box as="span" grow="Yes" alignItems="Center" gap="200">
             <Avatar size="200" radii="400">
@@ -357,14 +368,26 @@ export function RoomNavItem({
                 />
               )}
             </Avatar>
-            <Box as="span" grow="Yes">
+            <Box as="span" grow="Yes" direction="Column" gap="100">
               <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
                 {roomName}
               </Text>
+              {preview && (
+                <Text as="span" size="T200" priority="400" truncate>
+                  {preview}
+                </Text>
+              )}
             </Box>
             {!optionsVisible && !unread && !selected && typingMember.length > 0 && (
               <Badge size="300" variant="Secondary" fill="Soft" radii="Pill" outlined>
                 <TypingIndicator size="300" disableAnimation />
+              </Badge>
+            )}
+            {!optionsVisible && hasDraft && (
+              <Badge size="300" variant="Primary" fill="Soft" radii="Pill" outlined>
+                <Text as="span" size="T200">
+                  Draft
+                </Text>
               </Badge>
             )}
             {!optionsVisible && unread && (unread.total > 0 || unread.highlight > 0) && (
