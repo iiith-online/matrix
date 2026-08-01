@@ -207,9 +207,11 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
   }
 });
 
-const MEDIA_PATHS = ['/_matrix/client/v1/media/download', '/_matrix/client/v1/media/thumbnail'];
+const MEDIA_PATHS = ['/_matrix/client/v1/media/', '/_matrix/media/'];
 
 function isShellRequest(request: Request): boolean {
+  // Media must never enter the app-shell cache, including direct navigations.
+  if (mediaPath(request.url)) return false;
   if (request.mode === 'navigate') return true;
   const url = new URL(request.url);
   const scope = new URL(self.registration.scope);
