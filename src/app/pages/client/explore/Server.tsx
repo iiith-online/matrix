@@ -36,7 +36,7 @@ import { useMatrixClient } from '../../../hooks/useMatrixClient';
 import { RoomTopicViewer } from '../../../components/room-topic-viewer';
 import { RoomCard, RoomCardBase, RoomCardGrid } from '../../../components/room-card';
 import { ExploreServerPathSearchParams } from '../../paths';
-import { getExploreServerPath, withSearchParam } from '../../pathUtils';
+import { getCreatePath, getExploreServerPath, withSearchParam } from '../../pathUtils';
 import * as css from './style.css';
 import { allRoomsAtom } from '../../../state/room-list/roomList';
 import { useRoomNavigate } from '../../../hooks/useRoomNavigate';
@@ -466,6 +466,19 @@ export function PublicRooms() {
     explore({ instance: instanceId, since: undefined });
   };
 
+  const addSpaceButton = (
+    <Button
+      size="300"
+      fill="Soft"
+      before={<Icon size="100" src={Icons.Plus} />}
+      onClick={() => navigate(getCreatePath())}
+    >
+      <Text size="B300" truncate>
+        Add Space
+      </Text>
+    </Button>
+  );
+
   return (
     <Page>
       <PageHeader balance>
@@ -490,10 +503,12 @@ export function PublicRooms() {
               </Text>
             </Box>
             <Box grow="Yes" basis="No" />
+            {addSpaceButton}
           </>
         ) : (
           <>
             <Box grow="Yes" basis="No" />
+            {addSpaceButton}
             <Box grow="Yes" justifyContent="Center" alignItems="Center" gap="200">
               {screenSize !== ScreenSize.Mobile && <Icon size="400" src={Icons.Server} />}
               <Text size="H3" truncate>
