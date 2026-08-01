@@ -16,7 +16,6 @@ import { EmojisStickers } from '../common-settings/emojis-stickers';
 import { Permissions } from './permissions';
 import { RoomSettingsPage } from '../../state/roomSettings';
 import { useRoom } from '../../hooks/useRoom';
-import { DeveloperTools } from '../common-settings/developer-tools';
 
 type RoomSettingsMenuItem = {
   page: RoomSettingsPage;
@@ -46,11 +45,6 @@ const useRoomSettingsMenuItems = (): RoomSettingsMenuItem[] =>
         page: RoomSettingsPage.EmojisStickersPage,
         name: 'Emojis & Stickers',
         icon: Icons.Smile,
-      },
-      {
-        page: RoomSettingsPage.DeveloperToolsPage,
-        name: 'Developer Tools',
-        icon: Icons.Terminal,
       },
     ],
     []
@@ -164,9 +158,6 @@ export function RoomSettings({ initialPage, requestClose }: RoomSettingsProps) {
       )}
       {activePage === RoomSettingsPage.EmojisStickersPage && (
         <EmojisStickers requestClose={handlePageRequestClose} />
-      )}
-      {activePage === RoomSettingsPage.DeveloperToolsPage && (
-        <DeveloperTools requestClose={handlePageRequestClose} />
       )}
     </PageRoot>
   );

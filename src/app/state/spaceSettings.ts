@@ -5,7 +5,6 @@ export enum SpaceSettingsPage {
   MembersPage,
   PermissionsPage,
   EmojisStickersPage,
-  DeveloperToolsPage,
 }
 
 export type SpaceSettingsState = {

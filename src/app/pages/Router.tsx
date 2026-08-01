@@ -31,10 +31,10 @@ import {
 import {
   getAppPathFromHref,
   getExploreServerPath,
+  getHomePath,
   getInboxNotificationsPath,
   getLoginPath,
   getOriginBaseUrl,
-  getRecentPath,
   getSpaceLobbyPath,
 } from './pathUtils';
 import { ClientBindAtoms, ClientLayout, ClientRoot } from './client';
@@ -83,7 +83,7 @@ export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize)
     <Route>
       <Route
         loader={() => {
-          if (getFallbackSession()) return redirect(getRecentPath());
+          if (getFallbackSession()) return redirect(getHomePath());
           return null;
         }}
         element={
@@ -98,7 +98,7 @@ export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize)
       <Route
         loader={() => {
           if (getFallbackSession()) {
-            return redirect(getRecentPath());
+            return redirect(getHomePath());
           }
 
           return null;

@@ -14,7 +14,6 @@ import { SpaceSettingsPage } from '../../state/spaceSettings';
 import { useRoom } from '../../hooks/useRoom';
 import { EmojisStickers } from '../common-settings/emojis-stickers';
 import { Members } from '../common-settings/members';
-import { DeveloperTools } from '../common-settings/developer-tools';
 import { General } from './general';
 import { Permissions } from './permissions';
 
@@ -46,11 +45,6 @@ const useSpaceSettingsMenuItems = (): SpaceSettingsMenuItem[] =>
         page: SpaceSettingsPage.EmojisStickersPage,
         name: 'Emojis & Stickers',
         icon: Icons.Smile,
-      },
-      {
-        page: SpaceSettingsPage.DeveloperToolsPage,
-        name: 'Developer Tools',
-        icon: Icons.Terminal,
       },
     ],
     []
@@ -164,9 +158,6 @@ export function SpaceSettings({ initialPage, requestClose }: SpaceSettingsProps)
       )}
       {activePage === SpaceSettingsPage.EmojisStickersPage && (
         <EmojisStickers requestClose={handlePageRequestClose} />
-      )}
-      {activePage === SpaceSettingsPage.DeveloperToolsPage && (
-        <DeveloperTools requestClose={handlePageRequestClose} />
       )}
     </PageRoot>
   );

@@ -11,7 +11,6 @@ import {
 import {
   DirectTab,
   HomeTab,
-  RecentTab,
   SpaceTabs,
   InboxTab,
   ExploreTab,
@@ -20,7 +19,6 @@ import {
   SearchTab,
   InstallAppTab,
 } from './sidebar';
-import { CreateTab } from './sidebar/CreateTab';
 import { SyncStatus } from './SyncStatus';
 
 export function SidebarNav() {
@@ -33,7 +31,6 @@ export function SidebarNav() {
         scrollable={
           <Scroll ref={scrollRef} variant="Background" size="0">
             <SidebarStack>
-              <RecentTab />
               <HomeTab />
               <DirectTab />
             </SidebarStack>
@@ -41,7 +38,6 @@ export function SidebarNav() {
             <SidebarStackSeparator />
             <SidebarStack>
               <ExploreTab />
-              <CreateTab />
             </SidebarStack>
           </Scroll>
         }

@@ -9,7 +9,7 @@ import {
   deleteAfterLoginRedirectPath,
   getAfterLoginRedirectPath,
 } from '../../afterLoginRedirectPath';
-import { getRecentPath } from '../../pathUtils';
+import { getHomePath } from '../../pathUtils';
 import { setFallbackSession } from '../../../state/sessions';
 
 export enum LoginError {
@@ -66,7 +66,7 @@ export const useLoginComplete = (data?: CustomLoginResponse) => {
       setFallbackSession(loginRes.access_token, loginRes.device_id, loginRes.user_id, loginBaseUrl);
       const afterLoginRedirectUrl = getAfterLoginRedirectPath();
       deleteAfterLoginRedirectPath();
-      navigate(afterLoginRedirectUrl ?? getRecentPath(), { replace: true });
+      navigate(afterLoginRedirectUrl ?? getHomePath(), { replace: true });
     }
   }, [data, navigate]);
 };

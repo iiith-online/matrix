@@ -18,8 +18,15 @@ import {
   color,
   config,
 } from 'folds';
-import { NavCategory, NavItem, NavItemContent, NavLink } from '../../../components/nav';
-import { getExploreServerPath } from '../../pathUtils';
+import { NavButton, NavCategory, NavItem, NavItemContent, NavLink } from '../../../components/nav';
+import {
+  encodeSearchParamValueArray,
+  getCreatePath,
+  getExploreServerPath,
+  getSpacePath,
+  withSearchParam,
+} from '../../pathUtils';
+import { _RoomSearchParams } from '../../paths';
 import { DEFAULT_HOMESERVER } from '../../../hooks/useClientConfig';
 import { useExploreServer } from '../../../hooks/router/useExploreSelected';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
@@ -27,6 +34,7 @@ import { AsyncStatus, useAsyncCallback } from '../../../hooks/useAsyncCallback';
 import { useNavToActivePathMapper } from '../../../hooks/useNavToActivePathMapper';
 import { PageNav, PageNavContent, PageNavHeader } from '../../../components/page';
 import { stopPropagation } from '../../../utils/keyboard';
+import { JoinAddressPrompt } from '../../../components/join-address-prompt';
 
 export function AddServer() {
   const mx = useMatrixClient();
@@ -146,6 +154,8 @@ export function AddServer() {
 }
 
 export function Explore() {
+  const navigate = useNavigate();
+  const [joinAddress, setJoinAddress] = useState(false);
   useNavToActivePathMapper('explore');
   const selectedServer = useExploreServer();
 
@@ -187,8 +197,56 @@ export function Explore() {
               </NavItemContent>
             </NavLink>
           </NavItem>
+          <NavItem variant="Background" radii="400">
+            <NavButton onClick={() => navigate(getCreatePath())}>
+              <NavItemContent>
+                <Box as="span" grow="Yes" alignItems="Center" gap="200">
+                  <Avatar size="200" radii="400">
+                    <Icon src={Icons.Plus} size="100" />
+                  </Avatar>
+                  <Box as="span" grow="Yes">
+                    <Text as="span" size="Inherit" truncate>
+                      Add Space
+                    </Text>
+                  </Box>
+                </Box>
+              </NavItemContent>
+            </NavButton>
+          </NavItem>
+          <NavItem variant="Background" radii="400">
+            <NavButton onClick={() => setJoinAddress(true)}>
+              <NavItemContent>
+                <Box as="span" grow="Yes" alignItems="Center" gap="200">
+                  <Avatar size="200" radii="400">
+                    <Icon src={Icons.Link} size="100" />
+                  </Avatar>
+                  <Box as="span" grow="Yes">
+                    <Text as="span" size="Inherit" truncate>
+                      Join with Address
+                    </Text>
+                  </Box>
+                </Box>
+              </NavItemContent>
+            </NavButton>
+          </NavItem>
         </NavCategory>
       </PageNavContent>
+      {joinAddress && (
+        <JoinAddressPrompt
+          onCancel={() => setJoinAddress(false)}
+          onOpen={(roomIdOrAlias, viaServers) => {
+            setJoinAddress(false);
+            const path = getSpacePath(roomIdOrAlias);
+            navigate(
+              viaServers
+                ? withSearchParam<_RoomSearchParams>(path, {
+                    viaServers: encodeSearchParamValueArray(viaServers),
+                  })
+                : path
+            );
+          }}
+        />
+      )}
     </PageNav>
   );
 }
