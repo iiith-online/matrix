@@ -25,10 +25,9 @@ import {
   isNotificationEvent,
 } from '../../utils/room';
 import { NotificationType, UnreadInfo } from '../../../types/matrix/room';
-import { getMxIdLocalPart, mxcUrlToHttp } from '../../utils/matrix';
+import { getMxIdLocalPart } from '../../utils/matrix';
 import { useSelectedRoom } from '../../hooks/router/useSelectedRoom';
 import { useInboxNotificationsSelected } from '../../hooks/router/useInbox';
-import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { useClientConfig } from '../../hooks/useClientConfig';
 import { getPushRegistration, reconcilePushNotifications } from '../../utils/pushNotifications';
 import { useAndroidBackNavigation } from '../../hooks/useAndroidBackNavigation';
@@ -105,6 +104,52 @@ const getNotificationEvent = async (
   return { event, roomName: room.name ?? 'Matrix-IIIT', room };
 };
 
+type LocalNotificationOptions = {
+  title: string;
+  body: string;
+  clickPath: string;
+  tag?: string;
+  onClick: () => void;
+};
+
+const showLocalNotification = async ({
+  title,
+  body,
+  clickPath,
+  tag,
+  onClick,
+}: LocalNotificationOptions): Promise<Notification | undefined> => {
+  const clickUrl = new URL(clickPath, window.location.origin).href;
+  try {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, {
+        body,
+        icon: IIITIcon,
+        badge: IIITIcon,
+        tag,
+        silent: true,
+        data: { clickUrl },
+      });
+      return undefined;
+    }
+  } catch {
+    // Fall back to a page notification when service-worker notifications are unavailable.
+  }
+
+  const notification = new window.Notification(title, {
+    icon: IIITIcon,
+    badge: IIITIcon,
+    body,
+    silent: true,
+  });
+  notification.onclick = () => {
+    onClick();
+    notification.close();
+  };
+  return notification;
+};
+
 function InviteNotifications() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const invites = useAtomValue(allInvitesAtom);
@@ -117,19 +162,18 @@ function InviteNotifications() {
   const [notificationSound] = useSetting(settingsAtom, 'isNotificationSounds');
 
   const notify = useCallback(
-    (count: number) => {
-      const noti = new window.Notification('Invitation', {
-        icon: IIITIcon,
-        badge: IIITIcon,
+    (count: number) =>
+      showLocalNotification({
+        title: 'Invitation',
         body: `You have ${count} new invitation request.`,
-        silent: true,
-      });
-
-      noti.onclick = () => {
-        if (!window.closed) navigate(getInboxInvitesPath());
-        noti.close();
-      };
-    },
+        clickPath: getInboxInvitesPath(),
+        onClick: () => {
+          if (!window.closed) {
+            window.focus();
+            navigate(getInboxInvitesPath());
+          }
+        },
+      }),
     [navigate]
   );
 
@@ -175,7 +219,6 @@ function MessageNotifications() {
   const notifRef = useRef<Notification>();
   const unreadCacheRef = useRef<Map<string, UnreadInfo>>(new Map());
   const mx = useMatrixClient();
-  const useAuthentication = useMediaAuthentication();
   const [showNotifications] = useSetting(settingsAtom, 'showNotifications');
   const [notifyWhenActive] = useSetting(settingsAtom, 'notifyWhenActive');
   const [notificationSound] = useSetting(settingsAtom, 'isNotificationSounds');
@@ -187,34 +230,33 @@ function MessageNotifications() {
   const notify = useCallback(
     ({
       roomName,
-      roomAvatar,
       username,
       roomId,
       eventId,
       preview,
     }: {
       roomName: string;
-      roomAvatar?: string;
       username: string;
       roomId: string;
       eventId: string;
       preview: string;
     }) => {
-      const noti = new window.Notification(roomName, {
-        icon: roomAvatar,
-        badge: roomAvatar,
-        body: `${username}: ${preview}`,
-        silent: true,
-      });
-
-      noti.onclick = () => {
-        if (!window.closed) navigate(getRecentRoomPath(roomId, eventId));
-        noti.close();
-        notifRef.current = undefined;
-      };
-
       notifRef.current?.close();
-      notifRef.current = noti;
+      showLocalNotification({
+        title: roomName,
+        body: `${username}: ${preview}`,
+        clickPath: getRecentRoomPath(roomId, eventId),
+        tag: `room-${roomId}`,
+        onClick: () => {
+          if (!window.closed) {
+            window.focus();
+            navigate(getRecentRoomPath(roomId, eventId));
+          }
+          notifRef.current = undefined;
+        },
+      }).then((notification) => {
+        notifRef.current = notification;
+      });
     },
     [navigate]
   );
@@ -273,13 +315,8 @@ function MessageNotifications() {
         !getPushRegistration() ||
         (notifyWhenActive && document.visibilityState === 'visible');
       if (shouldNotifyLocally && showNotifications && notificationPermission('granted')) {
-        const avatarMxc =
-          room.getAvatarFallbackMember()?.getMxcAvatarUrl() ?? room.getMxcAvatarUrl();
         notify({
           roomName: room.name ?? 'Unknown',
-          roomAvatar: avatarMxc
-            ? mxcUrlToHttp(mx, avatarMxc, useAuthentication, 96, 96, 'crop') ?? undefined
-            : undefined,
           username: getMemberDisplayName(room, sender) ?? getMxIdLocalPart(sender) ?? sender,
           roomId: room.roomId,
           eventId,
@@ -304,7 +341,6 @@ function MessageNotifications() {
     playSound,
     notify,
     selectedRoomId,
-    useAuthentication,
   ]);
 
   return (

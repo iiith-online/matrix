@@ -130,7 +130,8 @@ async function updateBadge(unread?: number) {
   }
 }
 
-function safeClickUrl(value: string): string {
+function safeClickUrl(value: unknown): string {
+  if (typeof value !== 'string' || !value) return self.registration.scope;
   try {
     const url = new URL(value, self.location.origin);
     return url.origin === self.location.origin ? url.href : self.registration.scope;
@@ -217,7 +218,8 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close();
   event.waitUntil(
     (async () => {
-      const clickUrl = safeClickUrl(event.notification.data?.clickUrl);
+      const data = event.notification.data as { clickUrl?: unknown; url?: unknown } | undefined;
+      const clickUrl = safeClickUrl(data?.clickUrl ?? data?.url);
       const clients = (await self.clients.matchAll({
         type: 'window',
         includeUncontrolled: true,
@@ -225,9 +227,11 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
       const client = clients.find((candidate) => candidate.visibilityState === 'visible') ?? clients[0];
       if (client) {
         try {
-          await client.navigate(clickUrl);
-          await client.focus();
-          return;
+          const navigatedClient = await client.navigate(clickUrl);
+          if (navigatedClient) {
+            await navigatedClient.focus();
+            return;
+          }
         } catch {
           // Fall through to opening a fresh app window when the existing client is stale.
         }
