@@ -19,91 +19,46 @@ import {
 type BackRouteHandlerProps = {
   children: (onBack: () => void) => ReactNode;
 };
+
+export const getBackPath = (pathname: string): string | undefined => {
+  if (matchPath({ path: HOME_PATH, caseSensitive: true, end: true }, pathname)) return undefined;
+  if (matchPath({ path: RECENT_PATH, caseSensitive: true, end: true }, pathname)) return undefined;
+  if (matchPath({ path: DIRECT_PATH, caseSensitive: true, end: true }, pathname)) return undefined;
+  if (matchPath({ path: INBOX_PATH, caseSensitive: true, end: true }, pathname)) return undefined;
+
+  if (matchPath({ path: HOME_PATH, caseSensitive: true, end: false }, pathname)) {
+    return getHomePath();
+  }
+  if (matchPath({ path: RECENT_PATH, caseSensitive: true, end: false }, pathname)) {
+    return getRecentPath();
+  }
+  if (matchPath({ path: DIRECT_PATH, caseSensitive: true, end: false }, pathname)) {
+    return getDirectPath();
+  }
+  if (matchPath({ path: EXPLORE_PATH, caseSensitive: true, end: false }, pathname)) {
+    return getRecentPath();
+  }
+
+  const spaceMatch = matchPath({ path: SPACE_PATH, caseSensitive: true, end: false }, pathname);
+  const encodedSpaceIdOrAlias = spaceMatch?.params.spaceIdOrAlias;
+  if (encodedSpaceIdOrAlias) {
+    return getSpacePath(decodeURIComponent(encodedSpaceIdOrAlias));
+  }
+
+  if (matchPath({ path: INBOX_PATH, caseSensitive: true, end: false }, pathname)) {
+    return getInboxPath();
+  }
+
+  return undefined;
+};
+
 export function BackRouteHandler({ children }: BackRouteHandlerProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
   const goBack = useCallback(() => {
-    if (
-      matchPath(
-        {
-          path: HOME_PATH,
-          caseSensitive: true,
-          end: false,
-        },
-        location.pathname
-      )
-    ) {
-      navigate(getHomePath());
-      return;
-    }
-    if (
-      matchPath(
-        {
-          path: RECENT_PATH,
-          caseSensitive: true,
-          end: false,
-        },
-        location.pathname
-      )
-    ) {
-      navigate(getRecentPath());
-      return;
-    }
-    if (
-      matchPath(
-        {
-          path: DIRECT_PATH,
-          caseSensitive: true,
-          end: false,
-        },
-        location.pathname
-      )
-    ) {
-      navigate(getDirectPath());
-      return;
-    }
-    if (
-      matchPath(
-        {
-          path: EXPLORE_PATH,
-          caseSensitive: true,
-          end: false,
-        },
-        location.pathname
-      )
-    ) {
-      navigate(getRecentPath());
-      return;
-    }
-    const spaceMatch = matchPath(
-      {
-        path: SPACE_PATH,
-        caseSensitive: true,
-        end: false,
-      },
-      location.pathname
-    );
-    const encodedSpaceIdOrAlias = spaceMatch?.params.spaceIdOrAlias;
-    const decodedSpaceIdOrAlias =
-      encodedSpaceIdOrAlias && decodeURIComponent(encodedSpaceIdOrAlias);
-
-    if (decodedSpaceIdOrAlias) {
-      navigate(getSpacePath(decodedSpaceIdOrAlias));
-      return;
-    }
-    if (
-      matchPath(
-        {
-          path: INBOX_PATH,
-          caseSensitive: true,
-          end: false,
-        },
-        location.pathname
-      )
-    ) {
-      navigate(getInboxPath());
-    }
+    const backPath = getBackPath(location.pathname);
+    if (backPath) navigate(backPath);
   }, [navigate, location]);
 
   return children(goBack);

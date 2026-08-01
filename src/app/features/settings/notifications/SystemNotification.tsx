@@ -98,6 +98,7 @@ export function SystemNotification() {
   const { hashRouter } = useClientConfig();
   const notifPermission = usePermissionState('notifications', getNotificationState());
   const [, setShowNotifications] = useSetting(settingsAtom, 'showNotifications');
+  const [notifyWhenActive, setNotifyWhenActive] = useSetting(settingsAtom, 'notifyWhenActive');
   const [isNotificationSounds, setIsNotificationSounds] = useSetting(
     settingsAtom,
     'isNotificationSounds'
@@ -232,6 +233,18 @@ export function SystemNotification() {
               {pushBusy && <Spinner variant="Secondary" />}
             </Box>
           }
+        />
+      </SequenceCard>
+      <SequenceCard
+        className={SequenceCardStyle}
+        variant="SurfaceVariant"
+        direction="Column"
+        gap="400"
+      >
+        <SettingTile
+          title="Notify while the app is open"
+          description="Show message notifications even while Matrix-IIIT is active."
+          after={<Switch value={notifyWhenActive} onChange={setNotifyWhenActive} />}
         />
       </SequenceCard>
       <SequenceCard

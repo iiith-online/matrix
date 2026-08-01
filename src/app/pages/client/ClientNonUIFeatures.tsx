@@ -1,7 +1,7 @@
 import { useAtomValue } from 'jotai';
 import React, { ReactNode, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RoomEvent, RoomEventHandlerMap } from 'matrix-js-sdk';
+import { MatrixEvent, RoomEvent, RoomEventHandlerMap } from 'matrix-js-sdk';
 import { unreadEqual, unreadInfoToUnread } from '../../state/room/roomToUnread';
 import IIITIcon from '../../../iiit.png';
 import NotificationSound from '../../../../public/sound/notification.ogg';
@@ -12,7 +12,11 @@ import { settingsAtom } from '../../state/settings';
 import { allInvitesAtom } from '../../state/room-list/inviteList';
 import { usePreviousValue } from '../../hooks/usePreviousValue';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
-import { getInboxInvitesPath, getInboxNotificationsPath, getOriginBaseUrl } from '../pathUtils';
+import {
+  getInboxInvitesPath,
+  getOriginBaseUrl,
+  getRecentRoomPath,
+} from '../pathUtils';
 import {
   getMemberDisplayName,
   getNotificationType,
@@ -26,6 +30,7 @@ import { useInboxNotificationsSelected } from '../../hooks/router/useInbox';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { useClientConfig } from '../../hooks/useClientConfig';
 import { getPushRegistration, reconcilePushNotifications } from '../../utils/pushNotifications';
+import { useAndroidBackNavigation } from '../../hooks/useAndroidBackNavigation';
 
 function SystemEmojiFeature() {
   const [twitterEmoji] = useSetting(settingsAtom, 'twitterEmoji');
@@ -59,6 +64,22 @@ function FaviconUpdater() {
   return null;
 }
 
+const getNotificationPreview = (mEvent: MatrixEvent): string => {
+  const content = mEvent.getClearContent() ?? mEvent.getContent();
+  const body = typeof content.body === 'string' ? content.body.replace(/\s+/g, ' ').trim() : '';
+  if (body) return body.slice(0, 160);
+  if (mEvent.getType() === 'm.room.encrypted') return 'Encrypted message';
+
+  return (
+    {
+      'm.image': 'Sent an image',
+      'm.video': 'Sent a video',
+      'm.audio': 'Sent an audio message',
+      'm.file': 'Sent a file',
+    }[content.msgtype as string] ?? 'New message'
+  );
+};
+
 function InviteNotifications() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const invites = useAtomValue(allInvitesAtom);
@@ -67,6 +88,7 @@ function InviteNotifications() {
 
   const navigate = useNavigate();
   const [showNotifications] = useSetting(settingsAtom, 'showNotifications');
+  const [notifyWhenActive] = useSetting(settingsAtom, 'notifyWhenActive');
   const [notificationSound] = useSetting(settingsAtom, 'isNotificationSounds');
 
   const notify = useCallback(
@@ -93,7 +115,10 @@ function InviteNotifications() {
 
   useEffect(() => {
     if (invites.length > perviousInviteLen && mx.getSyncState() === 'SYNCING') {
-      if (!getPushRegistration() && showNotifications && notificationPermission('granted')) {
+      const shouldNotifyLocally =
+        !getPushRegistration() ||
+        (notifyWhenActive && document.visibilityState === 'visible');
+      if (shouldNotifyLocally && showNotifications && notificationPermission('granted')) {
         notify(invites.length - perviousInviteLen);
       }
 
@@ -101,7 +126,16 @@ function InviteNotifications() {
         playSound();
       }
     }
-  }, [mx, invites, perviousInviteLen, showNotifications, notificationSound, notify, playSound]);
+  }, [
+    mx,
+    invites,
+    perviousInviteLen,
+    notifyWhenActive,
+    showNotifications,
+    notificationSound,
+    notify,
+    playSound,
+  ]);
 
   return (
     // eslint-disable-next-line jsx-a11y/media-has-caption
@@ -118,6 +152,7 @@ function MessageNotifications() {
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
   const [showNotifications] = useSetting(settingsAtom, 'showNotifications');
+  const [notifyWhenActive] = useSetting(settingsAtom, 'notifyWhenActive');
   const [notificationSound] = useSetting(settingsAtom, 'isNotificationSounds');
 
   const navigate = useNavigate();
@@ -129,22 +164,26 @@ function MessageNotifications() {
       roomName,
       roomAvatar,
       username,
+      roomId,
+      eventId,
+      preview,
     }: {
       roomName: string;
       roomAvatar?: string;
       username: string;
       roomId: string;
       eventId: string;
+      preview: string;
     }) => {
       const noti = new window.Notification(roomName, {
         icon: roomAvatar,
         badge: roomAvatar,
-        body: `New inbox notification from ${username}`,
+        body: `${username}: ${preview}`,
         silent: true,
       });
 
       noti.onclick = () => {
-        if (!window.closed) navigate(getInboxNotificationsPath());
+        if (!window.closed) navigate(getRecentRoomPath(roomId, eventId));
         noti.close();
         notifRef.current = undefined;
       };
@@ -169,7 +208,13 @@ function MessageNotifications() {
       data
     ) => {
       if (mx.getSyncState() !== 'SYNCING') return;
-      if (document.hasFocus() && (selectedRoomId === room?.roomId || notificationSelected)) return;
+      if (
+        !notifyWhenActive &&
+        document.hasFocus() &&
+        (selectedRoomId === room?.roomId || notificationSelected)
+      ) {
+        return;
+      }
       if (
         !room ||
         !data.liveEvent ||
@@ -195,7 +240,10 @@ function MessageNotifications() {
         return;
       }
 
-      if (!getPushRegistration() && showNotifications && notificationPermission('granted')) {
+      const shouldNotifyLocally =
+        !getPushRegistration() ||
+        (notifyWhenActive && document.visibilityState === 'visible');
+      if (shouldNotifyLocally && showNotifications && notificationPermission('granted')) {
         const avatarMxc =
           room.getAvatarFallbackMember()?.getMxcAvatarUrl() ?? room.getMxcAvatarUrl();
         notify({
@@ -206,6 +254,7 @@ function MessageNotifications() {
           username: getMemberDisplayName(room, sender) ?? getMxIdLocalPart(sender) ?? sender,
           roomId: room.roomId,
           eventId,
+          preview: getNotificationPreview(mEvent),
         });
       }
 
@@ -221,6 +270,7 @@ function MessageNotifications() {
     mx,
     notificationSound,
     notificationSelected,
+    notifyWhenActive,
     showNotifications,
     playSound,
     notify,
@@ -270,6 +320,8 @@ type ClientNonUIFeaturesProps = {
 };
 
 export function ClientNonUIFeatures({ children }: ClientNonUIFeaturesProps) {
+  useAndroidBackNavigation();
+
   return (
     <>
       <SystemEmojiFeature />

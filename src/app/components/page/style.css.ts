@@ -1,6 +1,29 @@
-import { style } from '@vanilla-extract/css';
+import { keyframes, style } from '@vanilla-extract/css';
 import { recipe, RecipeVariants } from '@vanilla-extract/recipes';
 import { DefaultReset, color, config, toRem } from 'folds';
+
+const pageEnter = keyframes({
+  from: { opacity: 0, transform: 'translateY(4px)' },
+  to: { opacity: 1, transform: 'translateY(0)' },
+});
+
+export const PageRoot = style({
+  animation: `${pageEnter} 140ms ease-out both`,
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      animation: 'none',
+    },
+  },
+});
+
+export const Page = style({
+  animation: `${pageEnter} 140ms ease-out both`,
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      animation: 'none',
+    },
+  },
+});
 
 export const PageNav = recipe({
   variants: {

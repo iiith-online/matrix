@@ -54,6 +54,28 @@ body {
   /*Why font-variant-ligatures => https://github.com/rsms/inter/issues/222 */
   font-variant-ligatures: no-contextual;
 }
+
+@keyframes matrix-soft-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#portalContainer > * {
+  animation: matrix-soft-enter 140ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #portalContainer > * {
+    animation: none;
+  }
+}
+
 #root {
   width: 100%;
   height: 100%;

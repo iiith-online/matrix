@@ -179,9 +179,13 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
       })) as WindowClient[];
       const client = clients.find((candidate) => candidate.visibilityState === 'visible') ?? clients[0];
       if (client) {
-        await client.navigate(clickUrl);
-        await client.focus();
-        return;
+        try {
+          await client.navigate(clickUrl);
+          await client.focus();
+          return;
+        } catch {
+          // Fall through to opening a fresh app window when the existing client is stale.
+        }
       }
       await self.clients.openWindow(clickUrl);
     })()

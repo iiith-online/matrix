@@ -44,6 +44,7 @@ export interface Settings {
   legacyUsernameColor: boolean;
 
   showNotifications: boolean;
+  notifyWhenActive: boolean;
   isNotificationSounds: boolean;
 
   hour24Clock: boolean;
@@ -81,6 +82,7 @@ const defaultSettings: Settings = {
   legacyUsernameColor: false,
 
   showNotifications: true,
+  notifyWhenActive: false,
   isNotificationSounds: true,
 
   hour24Clock: false,

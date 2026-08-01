@@ -217,13 +217,15 @@ export const sanitizeText = (value, maxLength = 160) =>
     .slice(0, maxLength);
 
 const contentSummary = (notification) => {
-  if (notification.type === 'm.room.encrypted') return 'New encrypted message';
+  const body = sanitizeText(notification.content?.body);
+  if (body) return body;
+  if (notification.type === 'm.room.encrypted') return 'Encrypted message';
   if (notification.type === 'm.room.member' && notification.user_is_target) {
     return 'New room invitation';
   }
   const msgtype = notification.content?.msgtype;
   if (['m.text', 'm.notice', 'm.emote'].includes(msgtype)) {
-    return sanitizeText(notification.content?.body) || 'New message';
+    return body || 'New message';
   }
   return (
     {

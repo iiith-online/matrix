@@ -35,7 +35,7 @@ test('never renders encrypted ciphertext', () => {
     { clickBase: 'https://matrix.example.org/#', previewMode: 'maximum' }
   );
 
-  assert.equal(payload.body, 'Alice: New encrypted message');
+  assert.equal(payload.body, 'Alice: Encrypted message');
   assert.equal(
     buildClickUrl('https://matrix.example.org/#', '!room:example.org', '$event'),
     'https://matrix.example.org/#/recent/!room%3Aexample.org/%24event/'
