@@ -36,6 +36,9 @@ test('never renders encrypted ciphertext', () => {
   );
 
   assert.equal(payload.body, 'Alice: Encrypted message');
+  assert.equal(payload.roomId, '!room:example.org');
+  assert.equal(payload.eventId, '$event');
+  assert.equal(payload.encrypted, true);
   assert.equal(
     buildClickUrl('https://matrix.example.org/#', '!room:example.org', '$event'),
     'https://matrix.example.org/#/recent/!room%3Aexample.org/%24event/'

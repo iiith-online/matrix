@@ -1,7 +1,8 @@
 import { useAtomValue } from 'jotai';
 import React, { ReactNode, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MatrixEvent, RoomEvent, RoomEventHandlerMap } from 'matrix-js-sdk';
+import { MatrixClient, MatrixEvent, Room, RoomEvent, RoomEventHandlerMap } from 'matrix-js-sdk';
+import { CryptoBackend } from 'matrix-js-sdk/lib/common-crypto/CryptoBackend';
 import { unreadEqual, unreadInfoToUnread } from '../../state/room/roomToUnread';
 import IIITIcon from '../../../iiit.png';
 import NotificationSound from '../../../../public/sound/notification.ogg';
@@ -78,6 +79,30 @@ const getNotificationPreview = (mEvent: MatrixEvent): string => {
       'm.file': 'Sent a file',
     }[content.msgtype as string] ?? 'New message'
   );
+};
+
+const getNotificationEvent = async (
+  mx: MatrixClient,
+  roomId: string,
+  eventId: string
+): Promise<
+  | { event: MatrixEvent; roomName: string; room: Room }
+  | undefined
+> => {
+  const room = mx.getRoom(roomId);
+  if (!room) return undefined;
+
+  let event = room.findEventById(eventId);
+  if (!event) {
+    const rawEvent = await mx.fetchRoomEvent(roomId, eventId);
+    event = new MatrixEvent(rawEvent);
+  }
+
+  if (event.isEncrypted() && mx.getCrypto()) {
+    await event.attemptDecryption(mx.getCrypto() as CryptoBackend);
+  }
+
+  return { event, roomName: room.name ?? 'Matrix-IIIT', room };
 };
 
 function InviteNotifications() {
@@ -200,7 +225,7 @@ function MessageNotifications() {
   }, []);
 
   useEffect(() => {
-    const handleTimelineEvent: RoomEventHandlerMap[RoomEvent.Timeline] = (
+    const handleTimelineEvent: RoomEventHandlerMap[RoomEvent.Timeline] = async (
       mEvent,
       room,
       toStartOfTimeline,
@@ -223,6 +248,10 @@ function MessageNotifications() {
         getNotificationType(mx, room.roomId) === NotificationType.Mute
       ) {
         return;
+      }
+
+      if (mEvent.isEncrypted() && mx.getCrypto()) {
+        await mEvent.attemptDecryption(mx.getCrypto() as CryptoBackend).catch(() => undefined);
       }
 
       const sender = mEvent.getSender();
@@ -299,7 +328,40 @@ function PushNotificationReconciler() {
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data?.type === 'pushSubscriptionChanged') {
         reconcilePushNotifications(mx, getOriginBaseUrl(hashRouter), true).catch(() => undefined);
+        return;
       }
+
+      const port = event.ports[0];
+      if (event.data?.type !== 'requestNotificationPreview' || !port) return;
+
+      const sendPreview = async () => {
+        try {
+          const result = await getNotificationEvent(mx, event.data.roomId, event.data.eventId);
+          if (!result) {
+            port.postMessage({});
+            return;
+          }
+
+          const preview = getNotificationPreview(result.event);
+          if (preview === 'Encrypted message') {
+            port.postMessage({});
+            return;
+          }
+
+          const sender = result.event.getSender();
+          const username = sender
+            ? getMemberDisplayName(result.room, sender) ?? getMxIdLocalPart(sender) ?? sender
+            : undefined;
+          port.postMessage({
+            title: result.roomName,
+            body: username ? `${username}: ${preview}` : preview,
+          });
+        } catch {
+          port.postMessage({});
+        }
+      };
+
+      sendPreview().catch(() => port.postMessage({}));
     };
     reconcile();
     window.addEventListener('focus', reconcile);

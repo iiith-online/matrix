@@ -8,9 +8,17 @@ type PushPayload = {
   body: string;
   clickUrl: string;
   tag: string;
+  roomId?: string;
+  eventId?: string;
+  encrypted?: boolean;
   unread?: number;
   priority: 'high' | 'low';
   show: boolean;
+};
+
+type NotificationPreview = {
+  body?: string;
+  title?: string;
 };
 
 type BadgeNavigator = WorkerNavigator & {
@@ -131,6 +139,41 @@ function safeClickUrl(value: string): string {
   }
 }
 
+async function requestNotificationPreview(
+  client: WindowClient | undefined,
+  payload: PushPayload
+): Promise<NotificationPreview | undefined> {
+  if (!client || !payload.encrypted || !payload.roomId || !payload.eventId) return undefined;
+
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timeout = self.setTimeout(() => {
+      channel.port1.close();
+      resolve(undefined);
+    }, 1500);
+
+    channel.port1.onmessage = (event) => {
+      self.clearTimeout(timeout);
+      channel.port1.close();
+      const body = event.data?.body;
+      const title = event.data?.title;
+      resolve({
+        body: typeof body === 'string' && body.trim() ? body : undefined,
+        title: typeof title === 'string' && title.trim() ? title : undefined,
+      });
+    };
+
+    client.postMessage(
+      {
+        type: 'requestNotificationPreview',
+        roomId: payload.roomId,
+        eventId: payload.eventId,
+      },
+      [channel.port2]
+    );
+  });
+}
+
 self.addEventListener('push', (event: PushEvent) => {
   event.waitUntil(
     (async () => {
@@ -148,9 +191,11 @@ self.addEventListener('push', (event: PushEvent) => {
       })) as WindowClient[];
       if (!payload.show || clients.some((client) => client.visibilityState === 'visible')) return;
 
+      const preview = await requestNotificationPreview(clients[0], payload);
+
       const icon = new URL('pwa/icon-192.png', self.registration.scope).href;
-      await self.registration.showNotification(payload.title || 'Matrix-IIIT', {
-        body: payload.body,
+      await self.registration.showNotification(preview?.title || payload.title || 'Matrix-IIIT', {
+        body: preview?.body || payload.body,
         icon,
         badge: icon,
         tag: payload.tag,
