@@ -25,3 +25,10 @@ Publish `assetlinks.json` at
 `online.iiith.matrix` and the SHA-256 fingerprint of the certificate used by
 the installed release. For a Play Store release, use the Play App Signing
 certificate fingerprint.
+
+## Play release checklist
+
+- Set the Play target audience to older users (13+); PWAs on Android cannot target children.
+- Upload the signed AAB, then use the Play App Signing certificate fingerprint in `assetlinks.json`.
+- Keep the signing keystore and alias safe; future updates must use the same signing identity and a higher version code.
+- Verify the asset-links URL returns JSON directly, without an HTML fallback or cross-origin redirect.
