@@ -1,6 +1,7 @@
 /* eslint-disable import/first */
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { Analytics, type BeforeSendEvent } from '@vercel/analytics/react';
 import { enableMapSet } from 'immer';
 import '@fontsource/inter/variable.css';
 import 'folds/dist/style.css';
@@ -19,6 +20,15 @@ import { pushSessionToSW } from './sw-session';
 import { getFallbackSession } from './app/state/sessions';
 
 document.body.classList.add(configClass, varsClass);
+
+const redactAnalyticsEvent = (event: BeforeSendEvent): BeforeSendEvent => {
+  const url = new URL(event.url, window.location.origin);
+  const section = url.pathname.split('/').filter(Boolean)[0];
+  url.pathname = section ? `/${section}` : '/';
+  url.search = '';
+  url.hash = '';
+  return { ...event, url: url.toString() };
+};
 
 // Register Service Worker
 if ('serviceWorker' in navigator) {
@@ -53,7 +63,15 @@ const mountApp = () => {
   }
 
   const root = createRoot(rootContainer);
-  root.render(<App />);
+  root.render(
+    <>
+      <App />
+      <Analytics
+        mode={import.meta.env.PROD ? 'production' : 'development'}
+        beforeSend={redactAnalyticsEvent}
+      />
+    </>
+  );
 };
 
 mountApp();

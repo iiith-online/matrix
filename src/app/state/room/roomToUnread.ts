@@ -1,5 +1,5 @@
 import produce from 'immer';
-import { atom, useSetAtom } from 'jotai';
+import { atom, useAtomValue, useSetAtom } from 'jotai';
 import {
   ClientEvent,
   IRoomTimelineData,
@@ -80,7 +80,7 @@ const deleteUnreadInfo = (roomToUnread: RoomToUnread, allParents: Set<string>, r
   allParents.forEach((parentId) => {
     const oldParentUnread = roomToUnread.get(parentId);
     if (!oldParentUnread) return;
-    const newFrom = new Set([...(oldParentUnread.from ?? roomId)]);
+    const newFrom = new Set([...(oldParentUnread.from ?? [])]);
     newFrom.delete(roomId);
     if (newFrom.size === 0) {
       roomToUnread.delete(parentId);
@@ -184,6 +184,7 @@ export const roomToUnreadAtom = atom<RoomToUnread, [RoomToUnreadAction], undefin
 
 export const useBindRoomToUnreadAtom = (mx: MatrixClient, unreadAtom: typeof roomToUnreadAtom) => {
   const setUnreadAtom = useSetAtom(unreadAtom);
+  const roomToParents = useAtomValue(roomToParentsAtom);
   const roomsNotificationPreferences = useRoomsNotificationPreferencesContext();
 
   useEffect(() => {
@@ -298,7 +299,7 @@ export const useBindRoomToUnreadAtom = (mx: MatrixClient, unreadAtom: typeof roo
       type: 'RESET',
       unreadInfos: getUnreadInfos(mx),
     });
-  }, [mx, setUnreadAtom, roomsNotificationPreferences]);
+  }, [mx, roomToParents, setUnreadAtom, roomsNotificationPreferences]);
 
   useEffect(() => {
     const handleMembershipChange = (room: Room, membership: string) => {

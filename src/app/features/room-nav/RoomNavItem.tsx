@@ -1,5 +1,5 @@
-import React, { CSSProperties, MouseEventHandler, forwardRef, useState } from 'react';
-import { Room } from 'matrix-js-sdk';
+import React, { CSSProperties, MouseEventHandler, forwardRef, useEffect, useState } from 'react';
+import { MatrixEvent, MatrixEventEvent, Room, RoomEvent } from 'matrix-js-sdk';
 import {
   Avatar,
   Box,
@@ -23,7 +23,12 @@ import { useAtom, useAtomValue } from 'jotai';
 import { NavItem, NavItemContent, NavItemOptions, NavLink } from '../../components/nav';
 import { UnreadBadge, UnreadBadgeCenter } from '../../components/unread-badge';
 import { RoomAvatar, RoomIcon } from '../../components/room-avatar';
-import { getDirectRoomAvatarUrl, getRoomAvatarUrl, getStateEvent } from '../../utils/room';
+import {
+  getDirectRoomAvatarUrl,
+  getRoomAvatarUrl,
+  getStateEvent,
+  reactionOrEditEvent,
+} from '../../utils/room';
 import { nameInitials } from '../../utils/common';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useRoomUnread } from '../../state/hooks/unread';
@@ -60,7 +65,7 @@ import { useCallPreferencesAtom } from '../../state/hooks/callPreferences';
 import { roomIdToMsgDraftAtomFamily } from '../../state/room/roomInputDrafts';
 import { useAutoDiscoveryInfo } from '../../hooks/useAutoDiscoveryInfo';
 import { livekitSupport } from '../../hooks/useLivekitSupport';
-import { StateEvent } from '../../../types/matrix/room';
+import { MessageEvent, StateEvent } from '../../../types/matrix/room';
 import { webRTCSupported } from '../../utils/rtc';
 
 type RoomNavItemMenuProps = {
@@ -245,13 +250,56 @@ type RoomNavItemProps = {
   notificationMode?: RoomNotificationMode;
   showAvatar?: boolean;
   direct?: boolean;
+  spaceName?: string;
   style?: CSSProperties;
 };
+
+const getLatestPreviewEvent = (room: Room): MatrixEvent | undefined => {
+  const events = room.getLiveTimeline().getEvents();
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const event = events[i];
+    if (event && !event.isRedacted() && !reactionOrEditEvent(event)) {
+      const eventType = event.getType();
+      if (
+        eventType === MessageEvent.RoomMessage ||
+        eventType === MessageEvent.RoomMessageEncrypted ||
+        eventType === MessageEvent.Sticker
+      ) {
+        return event;
+      }
+    }
+  }
+  return undefined;
+};
+
+const getPreviewText = (event?: MatrixEvent): string | undefined => {
+  if (!event) return undefined;
+  if (event.isDecryptionFailure()) return 'Unable to decrypt message';
+
+  const content = event.getClearContent() ?? event.getContent();
+  if (content.msgtype === 'm.bad.encrypted') return 'Unable to decrypt message';
+
+  const body = typeof content.body === 'string' ? content.body.replace(/\s+/g, ' ').trim() : '';
+  if (body) return body;
+
+  if (event.isEncrypted()) return 'Encrypted message';
+
+  return (
+    {
+      'm.image': 'Sent an image',
+      'm.video': 'Sent a video',
+      'm.audio': 'Sent an audio message',
+      'm.file': 'Sent a file',
+    }[content.msgtype as string] ?? 'New message'
+  );
+};
+
 export function RoomNavItem({
   room,
   selected,
   showAvatar,
   direct,
+  spaceName,
   style,
   notificationMode,
   linkPath,
@@ -269,10 +317,29 @@ export function RoomNavItem({
   );
 
   const roomName = useRoomName(room);
+  const [, refreshPreview] = useState(0);
+  const previewEvent = getLatestPreviewEvent(room);
+  const preview = getPreviewText(previewEvent);
+  const previewLine = [spaceName && `in ${spaceName}`, preview].filter(Boolean).join(' · ');
   const lastEvent = room.getLastLiveEvent();
-  const lastBody = lastEvent?.getContent().body;
-  const preview = typeof lastBody === 'string' ? lastBody.replace(/\s+/g, ' ').trim() : undefined;
   const lastActivityLabel = lastEvent ? new Date(lastEvent.getTs()).toLocaleString() : undefined;
+
+  useEffect(() => {
+    const handleTimeline = () => refreshPreview((version) => version + 1);
+    room.on(RoomEvent.Timeline, handleTimeline);
+    return () => {
+      room.removeListener(RoomEvent.Timeline, handleTimeline);
+    };
+  }, [room, refreshPreview]);
+
+  useEffect(() => {
+    if (!previewEvent?.isEncrypted()) return undefined;
+    const handleDecrypted = () => refreshPreview((version) => version + 1);
+    previewEvent.on(MatrixEventEvent.Decrypted, handleDecrypted);
+    return () => {
+      previewEvent.removeListener(MatrixEventEvent.Decrypted, handleDecrypted);
+    };
+  }, [previewEvent, refreshPreview]);
 
   const handleContextMenu: MouseEventHandler<HTMLElement> = (evt) => {
     evt.preventDefault();
@@ -338,7 +405,7 @@ export function RoomNavItem({
       <NavLink
         to={linkPath}
         title={lastActivityLabel}
-        aria-label={[roomName, preview, lastActivityLabel].filter(Boolean).join(' · ')}
+        aria-label={[roomName, previewLine, lastActivityLabel].filter(Boolean).join(' · ')}
         onClick={room.isCallRoom() ? handleStartCall : undefined}
       >
         <NavItemContent>
@@ -375,9 +442,9 @@ export function RoomNavItem({
               <Text priority={unread ? '500' : '300'} as="span" size="Inherit" truncate>
                 {roomName}
               </Text>
-              {preview && (
+              {previewLine && (
                 <Text as="span" size="T200" priority="400" truncate>
-                  {preview}
+                  {previewLine}
                 </Text>
               )}
             </Box>

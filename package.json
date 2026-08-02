@@ -47,6 +47,7 @@
     "@vanilla-extract/css": "1.9.3",
     "@vanilla-extract/recipes": "0.3.0",
     "@vanilla-extract/vite-plugin": "3.7.1",
+    "@vercel/analytics": "2.0.1",
     "await-to-js": "3.0.0",
     "badwords-list": "2.0.1-4",
     "blurhash": "2.0.4",

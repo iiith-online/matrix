@@ -300,11 +300,25 @@ const useEventTimelineLoader = (
   onLoad: (eventId: string, linkedTimelines: EventTimeline[], evtAbsIndex: number) => void,
   onError: (err: Error | null) => void
 ) => {
+  const requestIdRef = useRef(0);
+
+  useEffect(
+    () => () => {
+      requestIdRef.current += 1;
+    },
+    []
+  );
+
   const loadEventTimeline = useCallback(
-    async (eventId: string) => {
+    async (eventId?: string) => {
+      requestIdRef.current += 1;
+      const requestId = requestIdRef.current;
+      if (!eventId) return;
+
       const [err, replyEvtTimeline] = await to(
         mx.getEventTimeline(room.getUnfilteredTimelineSet(), eventId)
       );
+      if (requestId !== requestIdRef.current) return;
       if (!replyEvtTimeline) {
         onError(err ?? null);
         return;
@@ -931,6 +945,8 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
     if (eventId) {
       setTimeline(getEmptyTimeline());
       loadEventTimeline(eventId);
+    } else {
+      loadEventTimeline();
     }
   }, [eventId, loadEventTimeline]);
 
@@ -1025,6 +1041,7 @@ export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimeli
   }, [scrollToElement, editId]);
 
   const handleJumpToLatest = () => {
+    loadEventTimeline();
     if (eventId) {
       navigateRoom(room.roomId, undefined, { replace: true });
     }

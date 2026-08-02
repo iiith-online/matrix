@@ -54,6 +54,7 @@ import { useHomeRooms } from './useHomeRooms';
 import { useRecentRooms } from '../recent/useRecentRooms';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
 import { mDirectAtom } from '../../../state/mDirectList';
+import { roomToParentsAtom } from '../../../state/room/roomToParents';
 import { VirtualTile } from '../../../components/virtualizer';
 import { RoomNavCategoryButton, RoomNavItem } from '../../../features/room-nav';
 import { makeNavCategoryId } from '../../../state/closedNavCategories';
@@ -204,6 +205,22 @@ function HomeEmpty() {
 
 const DEFAULT_CATEGORY_ID = makeNavCategoryId('home', 'room');
 const RECENT_CATEGORY_ID = makeNavCategoryId('home', 'recent');
+
+const getRoomSpaceName = (
+  mx: ReturnType<typeof useMatrixClient>,
+  roomToParents: Map<string, Set<string>>,
+  roomId: string
+) => {
+  const parentIds = roomToParents.get(roomId);
+  if (!parentIds) return undefined;
+
+  const names = Array.from(parentIds)
+    .map((parentId) => mx.getRoom(parentId)?.name)
+    .filter((name): name is string => Boolean(name));
+
+  return names.length > 0 ? names.join(' · ') : undefined;
+};
+
 export function Home() {
   const mx = useMatrixClient();
   useNavToActivePathMapper('home');
@@ -211,6 +228,7 @@ export function Home() {
   const rooms = useHomeRooms();
   const recentRooms = useRecentRooms();
   const mDirects = useAtomValue(mDirectAtom);
+  const roomToParents = useAtomValue(roomToParentsAtom);
   const notificationPreferences = useRoomsNotificationPreferencesContext();
   const navigate = useNavigate();
 
@@ -305,6 +323,7 @@ export function Home() {
                         selected={selectedRoomId === roomId}
                         showAvatar={direct}
                         direct={direct}
+                        spaceName={getRoomSpaceName(mx, roomToParents, roomId)}
                         style={{ minHeight: toRem(44) }}
                         linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
                         notificationMode={getRoomNotificationMode(

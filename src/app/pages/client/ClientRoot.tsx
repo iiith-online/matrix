@@ -30,7 +30,6 @@ import { MediaConfigProvider } from '../../hooks/useMediaConfig';
 import { MatrixClientProvider } from '../../hooks/useMatrixClient';
 import { SpecVersions } from './SpecVersions';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
-import { useSyncState } from '../../hooks/useSyncState';
 import { stopPropagation } from '../../utils/keyboard';
 import { AuthMetadataProvider } from '../../hooks/useAuthMetadata';
 import { getFallbackSession } from '../../state/sessions';
@@ -144,7 +143,6 @@ type ClientRootProps = {
   children: ReactNode;
 };
 export function ClientRoot({ children }: ClientRootProps) {
-  const [loading, setLoading] = useState(true);
   const { baseUrl, userId } = getFallbackSession() ?? {};
 
   const [loadState, loadMatrix] = useAsyncCallback<MatrixClient, Error, []>(
@@ -175,19 +173,10 @@ export function ClientRoot({ children }: ClientRootProps) {
     }
   }, [mx, startMatrix]);
 
-  useSyncState(
-    mx,
-    useCallback((state) => {
-      if (state === 'PREPARED') {
-        setLoading(false);
-      }
-    }, [])
-  );
-
   return (
     <AutoDiscovery userId={userId!} baseUrl={baseUrl!}>
       <SpecVersions baseUrl={baseUrl!}>
-        {loading && <ClientRootOptions mx={mx} />}
+        {!mx?.clientRunning && <ClientRootOptions mx={mx} />}
         {(loadState.status === AsyncStatus.Error || startState.status === AsyncStatus.Error) && (
           <SplashScreen>
             <Box
@@ -215,7 +204,7 @@ export function ClientRoot({ children }: ClientRootProps) {
             </Box>
           </SplashScreen>
         )}
-        {loading || !mx ? (
+        {!mx || !mx.clientRunning ? (
           <ClientRootLoading />
         ) : (
           <MatrixClientProvider value={mx}>
