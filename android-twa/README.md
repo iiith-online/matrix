@@ -32,3 +32,8 @@ certificate fingerprint.
 - Upload the signed AAB, then use the Play App Signing certificate fingerprint in `assetlinks.json`.
 - Keep the signing keystore and alias safe; future updates must use the same signing identity and a higher version code.
 - Verify the asset-links URL returns JSON directly, without an HTML fallback or cross-origin redirect.
+
+The manual GitHub Actions workflow uses the encrypted secrets
+`ANDROID_KEYSTORE_BASE64`, `BUBBLEWRAP_KEYSTORE_PASSWORD`, and
+`BUBBLEWRAP_KEY_PASSWORD` to produce signed APK and AAB artifacts. Keep an
+offline backup of the keystore as well.
