@@ -17,7 +17,6 @@ import {
   SettingsTab,
   UnverifiedTab,
   SearchTab,
-  InstallAppTab,
 } from './sidebar';
 import { SyncStatus } from './SyncStatus';
 
@@ -48,7 +47,6 @@ export function SidebarNav() {
               <SearchTab />
               <UnverifiedTab />
               <InboxTab />
-              <InstallAppTab />
               <SyncStatus mx={mx} />
               <SettingsTab />
             </SidebarStack>

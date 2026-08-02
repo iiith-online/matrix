@@ -1,17 +1,12 @@
 import React from 'react';
-import { Box, Icon, IconButton, Icons, Scroll, Switch, Text } from 'folds';
-import { Page, PageContent, PageHeader } from '../../../components/page';
+import { Box, Switch, Text } from 'folds';
 import { SequenceCard } from '../../../components/sequence-card';
 import { SettingTile } from '../../../components/setting-tile';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
 import { SequenceCardStyle } from '../styles.css';
 
-type TogglesProps = {
-  requestClose: () => void;
-};
-
-export function Toggles({ requestClose }: TogglesProps) {
+export function TogglesContent() {
   const [hideActivity, setHideActivity] = useSetting(settingsAtom, 'hideActivity');
   const [hideMembershipEvents, setHideMembershipEvents] = useSetting(
     settingsAtom,
@@ -30,124 +25,80 @@ export function Toggles({ requestClose }: TogglesProps) {
   const [showHiddenEvents, setShowHiddenEvents] = useSetting(settingsAtom, 'showHiddenEvents');
 
   return (
-    <Page>
-      <PageHeader outlined={false}>
-        <Box grow="Yes" gap="200">
-          <Box grow="Yes" alignItems="Center" gap="200">
-            <Text size="H3" truncate>
-              Toggles
-            </Text>
-          </Box>
-          <Box shrink="No">
-            <IconButton onClick={requestClose} variant="Surface" aria-label="Close settings">
-              <Icon src={Icons.Cross} />
-            </IconButton>
-          </Box>
-        </Box>
-      </PageHeader>
-      <Box grow="Yes">
-        <Scroll hideTrack visibility="Hover">
-          <PageContent>
-            <Box direction="Column" gap="700">
-              <Box direction="Column" gap="100">
-                <Text size="L400">Room activity</Text>
-                <SequenceCard
-                  className={SequenceCardStyle}
-                  variant="SurfaceVariant"
-                  direction="Column"
-                >
-                  <SettingTile
-                    title="Show typing and read receipts"
-                    description="Display activity indicators from other people in rooms."
-                    after={
-                      <Switch
-                        variant="Primary"
-                        value={!hideActivity}
-                        onChange={(value) => setHideActivity(!value)}
-                      />
-                    }
-                  />
-                  <SettingTile
-                    title="Show membership events"
-                    description="Display joins, leaves, invites, and membership changes in the timeline."
-                    after={
-                      <Switch
-                        variant="Primary"
-                        value={!hideMembershipEvents}
-                        onChange={(value) => setHideMembershipEvents(!value)}
-                      />
-                    }
-                  />
-                  <SettingTile
-                    title="Show profile changes"
-                    description="Display display-name and avatar changes in the timeline."
-                    after={
-                      <Switch
-                        variant="Primary"
-                        value={!hideNickAvatarEvents}
-                        onChange={(value) => setHideNickAvatarEvents(!value)}
-                      />
-                    }
-                  />
-                  <SettingTile
-                    title="Show call events"
-                    description="Display notices when someone joins or leaves a call."
-                    after={
-                      <Switch
-                        variant="Primary"
-                        value={showCallEvents}
-                        onChange={setShowCallEvents}
-                      />
-                    }
-                  />
-                  <SettingTile
-                    title="Show room changes"
-                    description="Display room name, topic, and avatar changes in the timeline."
-                    after={
-                      <Switch
-                        variant="Primary"
-                        value={showRoomChanges}
-                        onChange={setShowRoomChanges}
-                      />
-                    }
-                  />
-                </SequenceCard>
-              </Box>
-              <Box direction="Column" gap="100">
-                <Text size="L400">System events</Text>
-                <SequenceCard
-                  className={SequenceCardStyle}
-                  variant="SurfaceVariant"
-                  direction="Column"
-                >
-                  <SettingTile
-                    title="Show decryption errors"
-                    description="Keep unable-to-decrypt notices visible when an encrypted message cannot be read."
-                    after={
-                      <Switch
-                        variant="Primary"
-                        value={showDecryptionErrors}
-                        onChange={setShowDecryptionErrors}
-                      />
-                    }
-                  />
-                  <SettingTile
-                    title="Show hidden and unsupported events"
-                    description="Display event types that are normally hidden from the timeline."
-                    after={
-                      <Switch
-                        variant="Primary"
-                        value={showHiddenEvents}
-                        onChange={setShowHiddenEvents}
-                      />
-                    }
-                  />
-                </SequenceCard>
-              </Box>
-            </Box>
-          </PageContent>
-        </Scroll>
+    <Box direction="Column" gap="700">
+      <Box direction="Column" gap="100">
+        <Text size="L400">Room activity</Text>
+        <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+          <SettingTile
+            title="Show typing and read receipts"
+            description="Display activity indicators from other people in rooms."
+            after={
+              <Switch
+                variant="Primary"
+                value={!hideActivity}
+                onChange={(value) => setHideActivity(!value)}
+              />
+            }
+          />
+          <SettingTile
+            title="Show membership events"
+            description="Display joins, leaves, invites, and membership changes in the timeline."
+            after={
+              <Switch
+                variant="Primary"
+                value={!hideMembershipEvents}
+                onChange={(value) => setHideMembershipEvents(!value)}
+              />
+            }
+          />
+          <SettingTile
+            title="Show profile changes"
+            description="Display display-name and avatar changes in the timeline."
+            after={
+              <Switch
+                variant="Primary"
+                value={!hideNickAvatarEvents}
+                onChange={(value) => setHideNickAvatarEvents(!value)}
+              />
+            }
+          />
+          <SettingTile
+            title="Show call events"
+            description="Display notices when someone joins or leaves a call."
+            after={<Switch variant="Primary" value={showCallEvents} onChange={setShowCallEvents} />}
+          />
+          <SettingTile
+            title="Show room changes"
+            description="Display room name, topic, and avatar changes in the timeline."
+            after={
+              <Switch variant="Primary" value={showRoomChanges} onChange={setShowRoomChanges} />
+            }
+          />
+        </SequenceCard>
       </Box>
-    </Page>
+      <Box direction="Column" gap="100">
+        <Text size="L400">System events</Text>
+        <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+          <SettingTile
+            title="Show decryption errors"
+            description="Keep unable-to-decrypt notices visible when an encrypted message cannot be read."
+            after={
+              <Switch
+                variant="Primary"
+                value={showDecryptionErrors}
+                onChange={setShowDecryptionErrors}
+              />
+            }
+          />
+          <SettingTile
+            title="Show hidden and unsupported events"
+            description="Display event types that are normally hidden from the timeline."
+            after={
+              <Switch variant="Primary" value={showHiddenEvents} onChange={setShowHiddenEvents} />
+            }
+          />
+        </SequenceCard>
+      </Box>
+    </Box>
   );
 }

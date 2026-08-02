@@ -12,6 +12,7 @@ import {
   Box,
   Button,
   Chip,
+  color,
   config,
   Header,
   Icon,
@@ -50,6 +51,14 @@ import { useMessageLayoutItems } from '../../../hooks/useMessageLayout';
 import { useMessageSpacingItems } from '../../../hooks/useMessageSpacing';
 import { useDateFormatItems } from '../../../hooks/useDateFormat';
 import { SequenceCardStyle } from '../styles.css';
+import { Modal500 } from '../../../components/Modal500';
+import { usePwaInstall } from '../../../hooks/usePwaInstall';
+import { useMatrixClient } from '../../../hooks/useMatrixClient';
+import { checkForUpdatesAndReload, clearCacheAndReload } from '../../../../client/initMatrix';
+import { TogglesContent } from '../toggles/Toggles';
+import { EmojisStickersContent } from '../emojis-stickers';
+import { ImagePack } from '../../../plugins/custom-emoji';
+import { ImagePackView } from '../../../components/image-pack-view';
 
 type ThemeSelectorProps = {
   themeNames: Record<string, string>;
@@ -929,10 +938,174 @@ function Messages() {
   );
 }
 
+function InstallAppSetting() {
+  const { canInstall, install, isInstalled } = usePwaInstall();
+  const [showInstructions, setShowInstructions] = useState(false);
+
+  if (isInstalled) return null;
+
+  const handleInstall = async () => {
+    if (canInstall) {
+      await install();
+      return;
+    }
+    setShowInstructions(true);
+  };
+
+  return (
+    <>
+      <SettingTile
+        title="Install IIIT matrix"
+        description="Add IIIT matrix to your home screen for a faster launch."
+        after={
+          <Button
+            variant="Secondary"
+            fill="Soft"
+            size="300"
+            radii="300"
+            outlined
+            onClick={handleInstall}
+          >
+            <Text size="B300">Install</Text>
+          </Button>
+        }
+      />
+      {showInstructions && (
+        <Modal500 requestClose={() => setShowInstructions(false)}>
+          <Header variant="Surface" size="500">
+            <Box grow="Yes">
+              <Text size="H4">Install IIIT matrix</Text>
+            </Box>
+            <IconButton
+              size="300"
+              onClick={() => setShowInstructions(false)}
+              radii="300"
+              aria-label="Close install instructions"
+            >
+              <Icon src={Icons.Cross} />
+            </IconButton>
+          </Header>
+          <Box direction="Column" gap="400" style={{ padding: config.space.S400 }}>
+            <Text priority="400">
+              Open your browser menu and choose “Install IIIT matrix” or “Add to Home screen”.
+            </Text>
+            <Button variant="Secondary" fill="Soft" onClick={() => setShowInstructions(false)}>
+              <Text size="B400">Done</Text>
+            </Button>
+          </Box>
+        </Modal500>
+      )}
+    </>
+  );
+}
+
+function Options() {
+  const mx = useMatrixClient();
+  const [checkingForUpdate, setCheckingForUpdate] = useState(false);
+  const [updateCheckFailed, setUpdateCheckFailed] = useState(false);
+
+  const handleCheckForUpdates = async () => {
+    setCheckingForUpdate(true);
+    setUpdateCheckFailed(false);
+    try {
+      await checkForUpdatesAndReload();
+    } catch {
+      setUpdateCheckFailed(true);
+      setCheckingForUpdate(false);
+    }
+  };
+
+  return (
+    <Box direction="Column" gap="100">
+      <Text size="L400">Options</Text>
+      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+        <SettingTile
+          title="App updates"
+          description={
+            <span aria-live="polite">
+              Check for a newer version and reload the app.
+              {updateCheckFailed && (
+                <Text as="span" style={{ color: color.Critical.Main }} size="T200">
+                  {' '}
+                  Could not check for updates. Try again.
+                </Text>
+              )}
+            </span>
+          }
+          after={
+            <Button
+              onClick={handleCheckForUpdates}
+              variant="Secondary"
+              fill="Soft"
+              size="300"
+              radii="300"
+              outlined
+              disabled={checkingForUpdate}
+            >
+              <Text size="B300">{checkingForUpdate ? 'Checking…' : 'Check & Reload'}</Text>
+            </Button>
+          }
+        />
+        <SettingTile
+          title="Clear Cache & Reload"
+          description="Clear all your locally stored data and reload from server."
+          after={
+            <Button
+              onClick={() => clearCacheAndReload(mx)}
+              variant="Secondary"
+              fill="Soft"
+              size="300"
+              radii="300"
+              outlined
+            >
+              <Text size="B300">Clear Cache</Text>
+            </Button>
+          }
+        />
+        <InstallAppSetting />
+      </SequenceCard>
+    </Box>
+  );
+}
+
+function Source() {
+  return (
+    <Box direction="Column" gap="100">
+      <Text size="L400">Source</Text>
+      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+        <SettingTile
+          title="Repository"
+          description={
+            <a
+              href="https://github.com/iiith-online/matrix"
+              rel="noreferrer noopener"
+              target="_blank"
+            >
+              github.com/iiith-online/matrix
+            </a>
+          }
+        />
+        <SettingTile
+          title="License"
+          description="GNU Affero General Public License v3.0 (AGPL-3.0-only)"
+        />
+      </SequenceCard>
+    </Box>
+  );
+}
+
 type GeneralProps = {
   requestClose: () => void;
 };
 export function General({ requestClose }: GeneralProps) {
+  const [imagePack, setImagePack] = useState<ImagePack>();
+
+  if (imagePack) {
+    return (
+      <ImagePackView address={imagePack.address} requestClose={() => setImagePack(undefined)} />
+    );
+  }
+
   return (
     <Page>
       <PageHeader outlined={false}>
@@ -957,6 +1130,10 @@ export function General({ requestClose }: GeneralProps) {
               <DateAndTime />
               <Editor />
               <Messages />
+              <TogglesContent />
+              <EmojisStickersContent onViewPack={setImagePack} />
+              <Options />
+              <Source />
             </Box>
           </PageContent>
         </Scroll>
