@@ -2,6 +2,7 @@
   "name": "IIIT matrix",
   "short_name": "IIIT matrix",
   "description": "A Matrix client for IIIT communities",
+  "categories": ["social", "communication"],
   "dir": "auto",
   "lang": "en-US",
   "display": "standalone",
