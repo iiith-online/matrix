@@ -22,7 +22,26 @@
   },
   "appVersionName": "1",
   "appVersionCode": 1,
-  "shortcuts": [],
+  "shortcuts": [
+    {
+      "name": "New room",
+      "shortName": "New room",
+      "url": "https://matrix.iiith.online/create",
+      "chosenIconUrl": "https://matrix.iiith.online/icons/web/icon-192.png"
+    },
+    {
+      "name": "Notifications",
+      "shortName": "Inbox",
+      "url": "https://matrix.iiith.online/inbox/notifications/",
+      "chosenIconUrl": "https://matrix.iiith.online/icons/web/icon-192.png"
+    },
+    {
+      "name": "Direct messages",
+      "shortName": "Direct",
+      "url": "https://matrix.iiith.online/direct/",
+      "chosenIconUrl": "https://matrix.iiith.online/icons/web/icon-192.png"
+    }
+  ],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://matrix.iiith.online/manifest.json",
   "fallbackType": "customtabs",
@@ -41,7 +60,7 @@
   "retainedBundles": [],
   "protocolHandlers": [],
   "fileHandlers": [],
-  "launchHandlerClientMode": "",
+  "launchHandlerClientMode": "focus-existing",
   "displayOverride": [],
   "appVersion": "1"
 }

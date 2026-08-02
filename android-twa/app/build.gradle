@@ -39,7 +39,7 @@ def twaManifest = [
     // - short_name: Shorter string used if |name| is too long.
     // - url: Absolute path of the URL to launch the app with (e.g '/create').
     // - icon: Name of the resource in the drawable folder to use as an icon.
-    shortcuts: [],
+    shortcuts: [[name:'New room', short_name:'New room', url:'https://matrix.iiith.online/create', icon:'shortcut_0'],[name:'Notifications', short_name:'Inbox', url:'https://matrix.iiith.online/inbox/notifications/', icon:'shortcut_1'],[name:'Direct messages', short_name:'Direct', url:'https://matrix.iiith.online/direct/', icon:'shortcut_2']],
     // The duration of fade out animation in milliseconds to be played when removing splash screen.
     splashScreenFadeOutDuration: 300,
     generatorApp: 'bubblewrap-cli', // Application that generated the Android Project
