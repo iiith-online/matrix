@@ -4,7 +4,7 @@ import { Page, PageContent, PageHeader } from '../../../components/page';
 import { SequenceCard } from '../../../components/sequence-card';
 import { SequenceCardStyle } from '../styles.css';
 import { SettingTile } from '../../../components/setting-tile';
-import IIITIcon from '../../../../iiit.png';
+import AppIcon from '../../../../../public/icons/web/icon-512.png';
 import { clearCacheAndReload } from '../../../../client/initMatrix';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
 
@@ -38,14 +38,14 @@ export function About({ requestClose }: AboutProps) {
                 <Box shrink="No">
                   <img
                     style={{ width: toRem(116), height: toRem(60), objectFit: 'contain' }}
-                    src={IIITIcon}
-                    alt="Matrix-IIIT logo"
+                    src={AppIcon}
+                    alt="IIIT matrix logo"
                   />
                 </Box>
                 <Box direction="Column" gap="300">
                   <Box direction="Column" gap="100">
                     <Box gap="100" alignItems="End">
-                      <Text size="H3">Matrix-IIIT</Text>
+                      <Text size="H3">IIIT matrix</Text>
                       <Text size="T200">v4.12.3</Text>
                     </Box>
                     <Text>A secure Matrix client for IIIT communities.</Text>

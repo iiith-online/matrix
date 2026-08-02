@@ -1,4 +1,4 @@
-# Matrix-IIIT
+# IIIT matrix
 
 ## Web Push deployment
 
@@ -10,7 +10,7 @@ Set `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `VAPID_PUBLIC_KEY`,
 The live kill switch is the Redis key `push:enabled`: set it to `0` to disable new
 subscriptions and delivery immediately, or delete it to fall back to `PUSH_ENABLED`.
 
-Matrix-IIIT is a simple, elegant, and secure web client for Matrix communities, with end-to-end encryption support.
+IIIT matrix is a simple, elegant, and secure web client for Matrix communities, with end-to-end encryption support.
 
 ## Development
 
@@ -46,8 +46,8 @@ The production bundle is written to `dist/` and can be served by any static web 
 To run the Docker image locally after building it:
 
 ```sh
-docker build -t matrix-iiit:latest .
-docker run -p 8080:80 matrix-iiit:latest
+docker build -t iiit-matrix:latest .
+docker run -p 8080:80 iiit-matrix:latest
 ```
 
 The project is licensed under AGPL-3.0; see [`LICENSE`](LICENSE).

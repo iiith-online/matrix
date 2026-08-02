@@ -81,7 +81,7 @@ const setHttpPusher = (mx: MatrixClient, registration: PushRegistration) =>
     app_id: registration.appId,
     pushkey: registration.pushKey,
     kind: 'http',
-    app_display_name: 'Matrix-IIIT',
+    app_display_name: 'IIIT matrix',
     device_display_name: 'This browser',
     lang: navigator.language || 'en',
     data: { url: registration.notifyUrl },

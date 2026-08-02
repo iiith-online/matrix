@@ -26,7 +26,7 @@ export function CasLandingPage() {
     <Box direction="Column" gap="500">
       <Box direction="Column" alignItems="Center" gap="200">
         <Text as="h1" align="Center" size="H2">
-          Welcome to Matrix-IIIT
+          Welcome to IIIT matrix
         </Text>
         <Text align="Center" priority="400">
           Sign in with your IIIT account to continue.
@@ -40,7 +40,7 @@ export function CasLandingPage() {
         />
       ) : (
         <Text align="Center" style={{ color: color.Critical.Main }}>
-          CAS login is currently unavailable on Matrix-IIIT.
+          CAS login is currently unavailable on IIIT matrix.
         </Text>
       )}
     </Box>

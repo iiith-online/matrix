@@ -31,7 +31,7 @@ export const login = async (baseUrl: string, token: string): Promise<CustomLogin
     mx.loginRequest({
       type: 'm.login.token',
       token,
-      initial_device_display_name: 'Matrix-IIIT Web',
+      initial_device_display_name: 'IIIT matrix Web',
     })
   );
 

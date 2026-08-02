@@ -6,7 +6,7 @@
       "destination": "/api/matrix-notify"
     },
     {
-      "source": "/((?!api/|_matrix/push/v1/notify$|manifest\\.json$|sw\\.js(?:\\.map)?$|pwa/|public/|assets/|iiit\\.png$|config\\.json$|pdf\\.worker\\.min\\.js$).*)",
+      "source": "/((?!api/|_matrix/push/v1/notify$|manifest\\.json$|sw\\.js(?:\\.map)?$|pwa/|icons/|public/|assets/|iiit\\.png$|config\\.json$|pdf\\.worker\\.min\\.js$).*)",
       "destination": "/index.html"
     }
   ]

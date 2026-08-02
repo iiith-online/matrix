@@ -8,7 +8,7 @@ import * as css from './styles.css';
 import * as PatternsCss from '../../styles/Patterns.css';
 import { DEFAULT_HOMESERVER } from '../../hooks/useClientConfig';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
-import IIITIcon from '../../../iiit.png';
+import AppIcon from '../../../../public/icons/web/icon-512.png';
 import { AutoDiscoveryAction, autoDiscovery } from '../../cs-api';
 import { AutoDiscoveryInfoProvider } from '../../hooks/useAutoDiscoveryInfo';
 import { AuthFlowsLoader } from '../../components/AuthFlowsLoader';
@@ -86,16 +86,16 @@ export function AuthLayout({ redirectToServerPath = true }: AuthLayoutProps) {
         <Box direction="Column" className={css.AuthCard}>
           <Header className={css.AuthHeader} size="600" variant="Surface">
             <Box grow="Yes" direction="Row" gap="300" alignItems="Center">
-              <img className={css.AuthLogo} src={IIITIcon} alt="Matrix-IIIT logo" />
-              <Text size="H3">Matrix-IIIT</Text>
+              <img className={css.AuthLogo} src={AppIcon} alt="IIIT matrix logo" />
+              <Text size="H3">IIIT matrix</Text>
             </Box>
           </Header>
           <Box className={css.AuthCardContent} direction="Column">
             {discoveryState.status === AsyncStatus.Loading && (
-              <AuthLayoutLoading message="Connecting to Matrix-IIIT..." />
+              <AuthLayoutLoading message="Connecting to IIIT matrix..." />
             )}
             {discoveryState.status === AsyncStatus.Error && (
-              <AuthLayoutError message="Failed to connect to Matrix-IIIT." />
+              <AuthLayoutError message="Failed to connect to IIIT matrix." />
             )}
             {autoDiscoveryError?.action === AutoDiscoveryAction.FAIL_PROMPT && (
               <AuthLayoutError
@@ -103,7 +103,7 @@ export function AuthLayout({ redirectToServerPath = true }: AuthLayoutProps) {
               />
             )}
             {autoDiscoveryError?.action === AutoDiscoveryAction.FAIL_ERROR && (
-              <AuthLayoutError message="Matrix-IIIT returned an invalid connection address." />
+              <AuthLayoutError message="IIIT matrix returned an invalid connection address." />
             )}
             {discoveryState.status === AsyncStatus.Success && autoDiscoveryInfo && (
               <AuthServerProvider value={discoveryState.data.serverName}>

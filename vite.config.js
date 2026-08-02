@@ -39,13 +39,8 @@ const copyFiles = {
       dest: 'public/res/svg',
     },
     {
-      src: 'public/pwa/*',
-      dest: 'pwa',
-    },
-    {
-      src: 'src/iiit.png',
-      dest: '',
-      rename: 'iiit.png',
+      src: 'public/icons/web/*',
+      dest: 'icons/web',
     },
   ],
 };

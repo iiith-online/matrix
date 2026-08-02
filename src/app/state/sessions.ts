@@ -29,7 +29,7 @@ const SESSION_STORAGE_KEYS = {
 } as const;
 
 /**
- * Session storage for the Matrix-IIIT client.
+ * Session storage for the IIIT matrix client.
  */
 // const FALLBACK_STORE_NAME: SessionStoreName = {
 //   sync: 'web-sync-store',

@@ -194,8 +194,8 @@ self.addEventListener('push', (event: PushEvent) => {
 
       const preview = await requestNotificationPreview(clients[0], payload);
 
-      const icon = new URL('pwa/icon-192.png', self.registration.scope).href;
-      await self.registration.showNotification(preview?.title || payload.title || 'Matrix-IIIT', {
+      const icon = new URL('icons/web/icon-192.png', self.registration.scope).href;
+      await self.registration.showNotification(preview?.title || payload.title || 'IIIT matrix', {
         body: preview?.body || payload.body,
         icon,
         badge: icon,

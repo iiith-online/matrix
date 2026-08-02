@@ -28,7 +28,7 @@ function ExportKeys() {
         const blob = new Blob([encKeys], {
           type: 'text/plain;charset=us-ascii',
         });
-        FileSaver.saveAs(blob, 'matrix-iiit-keys.txt');
+        FileSaver.saveAs(blob, 'iiit-matrix-keys.txt');
       },
       [mx]
     )

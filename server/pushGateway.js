@@ -251,13 +251,13 @@ export const renderNotification = (notification, record) => {
     ? sender
       ? `${sender}: ${summary}`
       : summary
-    : 'New Matrix-IIIT notification';
+      : 'New IIIT matrix notification';
   const unread = Number.isInteger(notification.counts?.unread)
     ? Math.min(9999, Math.max(0, notification.counts.unread))
     : undefined;
 
   return {
-    title: maximum && roomName ? roomName : 'Matrix-IIIT',
+    title: maximum && roomName ? roomName : 'IIIT matrix',
     body,
     clickUrl: buildClickUrl(record.clickBase, notification.room_id, notification.event_id),
     tag: notification.room_id ? `room-${sha256(notification.room_id).slice(0, 24)}` : 'matrix',
@@ -294,7 +294,7 @@ export const sendTest = async (req) => {
   await rateLimit(req, 'test', 10);
   const { record } = await loadManagedRecord(req);
   await send(record, {
-    title: 'Matrix-IIIT',
+    title: 'IIIT matrix',
     body: 'Push notifications are working.',
     clickUrl: `${record.clickBase}/recent/`,
     tag: 'matrix-test',

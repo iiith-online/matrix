@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MatrixClient, MatrixEvent, Room, RoomEvent, RoomEventHandlerMap } from 'matrix-js-sdk';
 import { CryptoBackend } from 'matrix-js-sdk/lib/common-crypto/CryptoBackend';
 import { unreadEqual, unreadInfoToUnread } from '../../state/room/roomToUnread';
-import IIITIcon from '../../../iiit.png';
+import AppIcon from '../../../../public/icons/web/icon-512.png';
 import NotificationSound from '../../../../public/sound/notification.ogg';
 import InviteSound from '../../../../public/sound/invite.ogg';
 import { notificationPermission, setFavicon } from '../../utils/dom';
@@ -58,7 +58,7 @@ function PageZoomFeature() {
 
 function FaviconUpdater() {
   useEffect(() => {
-    setFavicon(IIITIcon);
+    setFavicon(AppIcon);
   }, []);
 
   return null;
@@ -101,7 +101,7 @@ const getNotificationEvent = async (
     await event.attemptDecryption(mx.getCrypto() as CryptoBackend);
   }
 
-  return { event, roomName: room.name ?? 'Matrix-IIIT', room };
+  return { event, roomName: room.name ?? 'IIIT matrix', room };
 };
 
 type LocalNotificationOptions = {
@@ -125,8 +125,8 @@ const showLocalNotification = async ({
       const registration = await navigator.serviceWorker.ready;
       await registration.showNotification(title, {
         body,
-        icon: IIITIcon,
-        badge: IIITIcon,
+        icon: AppIcon,
+        badge: AppIcon,
         tag,
         silent: true,
         data: { clickUrl },
@@ -138,8 +138,8 @@ const showLocalNotification = async ({
   }
 
   const notification = new window.Notification(title, {
-    icon: IIITIcon,
-    badge: IIITIcon,
+    icon: AppIcon,
+    badge: AppIcon,
     body,
     silent: true,
   });

@@ -36,7 +36,7 @@ function EmailNotification() {
             device_display_name: email,
             lang: 'en',
             data: {
-              brand: 'Matrix-IIIT',
+              brand: 'IIIT matrix',
             },
             append: true,
           });
@@ -256,7 +256,7 @@ export function SystemNotification() {
       >
         <SettingTile
           title="Notify while the app is open"
-          description="Show message notifications even while Matrix-IIIT is active."
+          description="Show message notifications even while IIIT matrix is active."
           after={<Switch value={notifyWhenActive} onChange={setNotifyWhenActive} />}
         />
       </SequenceCard>

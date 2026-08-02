@@ -6,7 +6,7 @@ import { Avatar, Badge, Box, Button, Icon, Icons, Scroll, Text, config, toRem } 
 import { Page, PageContent, PageHero, PageHeroSection } from '../../components/page';
 import { NavItem, NavItemContent, NavLink } from '../../components/nav';
 import { RoomAvatar } from '../../components/room-avatar';
-import IIITIcon from '../../../iiit.png';
+import AppIcon from '../../../../public/icons/web/icon-512.png';
 import { useHomeRooms } from './home/useHomeRooms';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
@@ -153,7 +153,7 @@ function HomeDashboard() {
               <Box direction="Column" gap="100">
                 <Text size="H2">Welcome back</Text>
                 <Text size="T300" priority="400">
-                  Pick up where you left off in Matrix-IIIT.
+                  Pick up where you left off in IIIT matrix.
                 </Text>
               </Box>
 
@@ -275,11 +275,11 @@ export function WelcomePage({ homeDashboard = false }: { homeDashboard?: boolean
                 width="140"
                 height="72"
                 style={{ objectFit: 'contain' }}
-                src={IIITIcon}
-                alt="Matrix-IIIT logo"
+                src={AppIcon}
+                alt="IIIT matrix logo"
               />
             }
-            title="Welcome to Matrix-IIIT"
+            title="Welcome to IIIT matrix"
             subTitle={<span>A secure Matrix client for IIIT communities. v4.12.3</span>}
           >
             <Box justifyContent="Center">

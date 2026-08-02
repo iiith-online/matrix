@@ -1,5 +1,5 @@
 {
-  "name": "matrix-iiit",
+  "name": "iiit-matrix",
   "version": "4.12.3",
   "description": "A secure Matrix client for IIIT communities",
   "main": "index.js",

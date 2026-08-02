@@ -1,4 +1,4 @@
-# Matrix-IIIT TODO
+# IIIT matrix TODO
 
 ## High priority
 

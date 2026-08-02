@@ -16,8 +16,8 @@ test('renders private payloads without leaking message content', () => {
     { clickBase: 'https://matrix.example.org', previewMode: 'private' }
   );
 
-  assert.equal(payload.title, 'Matrix-IIIT');
-  assert.equal(payload.body, 'New Matrix-IIIT notification');
+  assert.equal(payload.title, 'IIIT matrix');
+  assert.equal(payload.body, 'New IIIT matrix notification');
   assert.equal(payload.unread, 3);
   assert.equal(payload.clickUrl, 'https://matrix.example.org/recent/!room%3Aexample.org/%24event/');
 });

@@ -20,12 +20,12 @@ export function InstallAppTab() {
 
   return (
     <SidebarItem>
-      <SidebarItemTooltip tooltip="Install Matrix-IIIT">
+      <SidebarItemTooltip tooltip="Install IIIT matrix">
         {(triggerRef) => (
           <SidebarAvatar
             as="button"
             ref={triggerRef}
-            aria-label="Install Matrix-IIIT app"
+            aria-label="Install IIIT matrix app"
             onClick={handleInstall}
           >
             <Icon src={Icons.Download} size="200" />
@@ -36,7 +36,7 @@ export function InstallAppTab() {
         <Modal500 requestClose={() => setShowInstructions(false)}>
           <Header variant="Surface" size="500">
             <Box grow="Yes">
-              <Text size="H4">Install Matrix-IIIT</Text>
+              <Text size="H4">Install IIIT matrix</Text>
             </Box>
             <IconButton
               size="300"
@@ -49,7 +49,7 @@ export function InstallAppTab() {
           </Header>
           <Box direction="Column" gap="400" style={{ padding: config.space.S400 }}>
             <Text priority="400">
-              Open your browser menu and choose “Install Matrix-IIIT” or “Add to Home screen”.
+              Open your browser menu and choose “Install IIIT matrix” or “Add to Home screen”.
             </Text>
             <Button variant="Secondary" fill="Soft" onClick={() => setShowInstructions(false)}>
               <Text size="B400">Done</Text>
