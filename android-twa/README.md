@@ -26,6 +26,10 @@ Publish `assetlinks.json` at
 the installed release. For a Play Store release, use the Play App Signing
 certificate fingerprint.
 
+The checked-in web asset uses the current local upload-key fingerprint so the
+signed APK built from this repository can verify the TWA. After publishing on
+Google Play, add the Play App Signing fingerprint to the same array as well.
+
 ## Play release checklist
 
 - Set the Play target audience to older users (13+); PWAs on Android cannot target children.

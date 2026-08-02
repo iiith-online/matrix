@@ -42,6 +42,10 @@ const copyFiles = {
       src: 'public/icons/web/*',
       dest: 'icons/web',
     },
+    {
+      src: 'public/.well-known/assetlinks.json',
+      dest: '.well-known',
+    },
   ],
 };
 
