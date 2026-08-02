@@ -230,13 +230,18 @@ export const reconcilePushNotifications = async (
   if (
     !registration ||
     !pushSupported() ||
-    Notification.permission !== 'granted' ||
-    (!force && !previewNeedsUpdate && Date.now() - registration.lastReconciledAt < RECONCILE_INTERVAL)
+    Notification.permission !== 'granted'
   ) {
     return;
   }
   const subscription = await (await navigator.serviceWorker.ready).pushManager.getSubscription();
-  if (!subscription) return;
+  if (!subscription) {
+    await enablePushNotifications(mx, clickBase);
+    return;
+  }
+  if (!force && !previewNeedsUpdate && Date.now() - registration.lastReconciledAt < RECONCILE_INTERVAL) {
+    return;
+  }
   await gatewayRequest(registration, 'POST', {
     subscription,
     clickBase,
