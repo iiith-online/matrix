@@ -3,6 +3,7 @@ import { Provider as JotaiProvider } from 'jotai';
 import { OverlayContainerProvider, PopOutContainerProvider, TooltipContainerProvider } from 'folds';
 import { RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Analytics } from '@vercel/analytics/react';
 
 import { ClientConfigLoader } from '../components/ClientConfigLoader';
 import { ClientConfigProvider } from '../hooks/useClientConfig';
@@ -54,6 +55,7 @@ function App() {
           </ScreenSizeProvider>
         </OverlayContainerProvider>
       </PopOutContainerProvider>
+      <Analytics />
     </TooltipContainerProvider>
   );
 }
