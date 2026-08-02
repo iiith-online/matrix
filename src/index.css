@@ -41,6 +41,7 @@
 html {
   height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -50,6 +51,8 @@ body {
   font-family: var(--font-secondary);
   font-size: 16px;
   font-weight: 400;
+  min-height: 100%;
+  overscroll-behavior: none;
 
   /*Why font-variant-ligatures => https://github.com/rsms/inter/issues/222 */
   font-variant-ligatures: no-contextual;
@@ -78,9 +81,17 @@ body {
 
 #root {
   width: 100%;
-  height: 100%;
+  height: 100dvh;
+  min-height: 100%;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   display: flex;
   flex-direction: column;
+}
+
+@supports not (height: 100dvh) {
+  #root {
+    height: 100%;
+  }
 }
 
 *,
