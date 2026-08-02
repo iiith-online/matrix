@@ -2,13 +2,16 @@
 
 ## Web Push deployment
 
-Set `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `VAPID_PUBLIC_KEY`,
-`VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` in Vercel. Generate the VAPID pair with
-`npx web-push generate-vapid-keys`, set `PUSH_ENABLED=true`, and optionally set
-`PUSH_ALLOWED_ORIGINS` to a comma-separated list of additional application origins.
+Set `DATABASE_URL`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT`
+in Vercel. Generate the VAPID pair with `npx web-push generate-vapid-keys`, set
+`PUSH_ENABLED=true`, and optionally set `PUSH_ALLOWED_ORIGINS` to a comma-separated
+list of additional application origins.
 
-The live kill switch is the Redis key `push:enabled`: set it to `0` to disable new
-subscriptions and delivery immediately, or delete it to fall back to `PUSH_ENABLED`.
+Run `npm run db:setup` once after pulling `DATABASE_URL` to create the Neon push
+tables. The live kill switch is the `push_settings` row with key `enabled`: set its
+value to `0` to disable delivery, or delete the row to fall back to `PUSH_ENABLED`.
+After this deployment is live, remove the legacy Upstash/KV variables and integration
+from Vercel.
 
 IIIT matrix is a simple, elegant, and secure web client for Matrix communities, with end-to-end encryption support.
 

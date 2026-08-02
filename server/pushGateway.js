@@ -1,8 +1,10 @@
 import { createHash, randomBytes } from 'node:crypto';
+import { neon } from '@neondatabase/serverless';
 import webpush from 'web-push';
 
 const SUBSCRIPTION_TTL = 180 * 24 * 60 * 60;
 const DEDUPE_TTL = 24 * 60 * 60;
+const DEDUPE_PENDING_TTL = 30;
 const RATE_LIMIT_TTL = 60;
 const APP_ID = process.env.PUSH_APP_ID || 'org.iiit.matrix.web';
 
@@ -21,25 +23,36 @@ export const json = (res, status, body) => {
 };
 
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
-const subscriptionKey = (pushKey) => `push:subscription:${pushKey}`;
-const managementKey = (token) => `push:management:${sha256(token)}`;
+const databaseUrl = () => process.env.DATABASE_URL || process.env.POSTGRES_URL;
+let database;
+let connectedDatabaseUrl;
 
-const redis = async (command) => {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) throw new HttpError(503, 'Push storage is not configured.');
+const getDatabase = () => {
+  const url = databaseUrl();
+  if (!url) throw new HttpError(503, 'Push storage is not configured.');
+  if (!database || connectedDatabaseUrl !== url) {
+    database = neon(url);
+    connectedDatabaseUrl = url;
+  }
+  return database;
+};
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(command),
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!response.ok) throw new HttpError(502, 'Push storage failed.');
+const databaseQuery = async (operation) => {
+  try {
+    return await operation(getDatabase());
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    throw new HttpError(502, 'Push storage failed.');
+  }
+};
 
-  const result = await response.json();
-  if (result.error) throw new HttpError(502, 'Push storage failed.');
-  return result.result;
+const databaseTransaction = async (operation) => {
+  try {
+    return await getDatabase().transaction(operation);
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    throw new HttpError(502, 'Push storage failed.');
+  }
 };
 
 const parseBody = (req, maxBytes = 16_384) => {
@@ -64,9 +77,31 @@ const requestOrigin = (req) => {
 const rateLimit = async (req, bucket, limit) => {
   const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   const identity = forwarded || req.socket?.remoteAddress || 'unknown';
-  const key = `push:rate:${bucket}:${sha256(identity)}`;
-  const count = Number(await redis(['INCR', key]));
-  if (count === 1) await redis(['EXPIRE', key, RATE_LIMIT_TTL]);
+  const rows = await databaseQuery((sql) => sql`
+    INSERT INTO push_rate_limits (bucket, identity_hash, window_started_at, request_count)
+    VALUES (${bucket}, ${sha256(identity)}, NOW(), 1)
+    ON CONFLICT (bucket, identity_hash) DO UPDATE SET
+      request_count = CASE
+        WHEN push_rate_limits.window_started_at <= NOW() - ${RATE_LIMIT_TTL} * INTERVAL '1 second'
+          THEN 1
+        ELSE push_rate_limits.request_count + 1
+      END,
+      window_started_at = CASE
+        WHEN push_rate_limits.window_started_at <= NOW() - ${RATE_LIMIT_TTL} * INTERVAL '1 second'
+          THEN NOW()
+        ELSE push_rate_limits.window_started_at
+      END
+    RETURNING request_count
+  `);
+  const count = Number(rows[0]?.request_count || 0);
+  if (count === 1) {
+    await databaseQuery(
+      (sql) => sql`
+        DELETE FROM push_rate_limits
+        WHERE window_started_at <= NOW() - ${24 * 60 * 60} * INTERVAL '1 second'
+      `
+    ).catch(() => undefined);
+  }
   if (count > limit) throw new HttpError(429, 'Too many requests. Try again later.');
 };
 
@@ -128,36 +163,109 @@ const validateClickBase = (value, origin) => {
   return value.replace(/\/$/, '');
 };
 
+const PUSH_SELECT = `
+  SELECT push_key, subscription, click_base, preview_mode, management_hash, created_at, updated_at
+  FROM push_subscriptions
+`;
+
+const recordFromRow = (row) => ({
+  subscription:
+    typeof row.subscription === 'string' ? JSON.parse(row.subscription) : row.subscription,
+  clickBase: row.click_base,
+  previewMode: row.preview_mode,
+  managementHash: row.management_hash,
+  createdAt: new Date(row.created_at).getTime(),
+  updatedAt: new Date(row.updated_at).getTime(),
+});
+
 const loadManagedRecord = async (req) => {
   const token = bearerToken(req);
-  const pushKey = await redis(['GET', managementKey(token)]);
-  if (!pushKey) throw new HttpError(401, 'Invalid management token.');
-  const value = await redis(['GET', subscriptionKey(pushKey)]);
-  if (!value) throw new HttpError(404, 'Push subscription not found.');
-  return { token, pushKey, record: JSON.parse(value) };
+  const rows = await databaseQuery((db) =>
+    db.query(`${PUSH_SELECT} WHERE management_hash = $1 AND expires_at > NOW() LIMIT 1`, [
+      sha256(token),
+    ])
+  );
+  if (rows.length === 0) throw new HttpError(401, 'Invalid management token.');
+  return { token, pushKey: rows[0].push_key, record: recordFromRow(rows[0]) };
 };
 
-const saveRecord = async (pushKey, token, record) => {
-  await Promise.all([
-    redis(['SET', subscriptionKey(pushKey), JSON.stringify(record), 'EX', SUBSCRIPTION_TTL]),
-    redis(['SET', managementKey(token), pushKey, 'EX', SUBSCRIPTION_TTL]),
-  ]);
+const loadPushRecords = async (pushKeys) => {
+  const uniquePushKeys = [...new Set(pushKeys)];
+  if (uniquePushKeys.length === 0) return new Map();
+  const rows = await databaseQuery((db) =>
+    db.query(
+      `${PUSH_SELECT} WHERE push_key = ANY($1::text[]) AND expires_at > NOW()`,
+      [uniquePushKeys]
+    )
+  );
+  return new Map(rows.map((row) => [row.push_key, recordFromRow(row)]));
 };
 
-const refreshRecord = async (pushKey, record) => {
-  const value = JSON.stringify({ ...record, updatedAt: Date.now() });
-  await Promise.all([
-    redis(['SET', subscriptionKey(pushKey), value, 'EX', SUBSCRIPTION_TTL]),
-    redis(['SET', `push:management:${record.managementHash}`, pushKey, 'EX', SUBSCRIPTION_TTL]),
-  ]);
+const saveRecord = async (pushKey, record) => {
+  const createdAt = new Date(record.createdAt || Date.now()).toISOString();
+  const updatedAt = new Date(record.updatedAt || Date.now()).toISOString();
+  const expiresAt = new Date(Date.now() + SUBSCRIPTION_TTL * 1000).toISOString();
+  const subscription = JSON.stringify(record.subscription);
+  await databaseQuery((sql) => sql`
+    INSERT INTO push_subscriptions (
+      push_key,
+      management_hash,
+      subscription,
+      click_base,
+      preview_mode,
+      created_at,
+      updated_at,
+      expires_at
+    ) VALUES (
+      ${pushKey},
+      ${record.managementHash},
+      ${subscription}::jsonb,
+      ${record.clickBase},
+      ${record.previewMode},
+      ${createdAt},
+      ${updatedAt},
+      ${expiresAt}
+    )
+    ON CONFLICT (push_key) DO UPDATE SET
+      management_hash = EXCLUDED.management_hash,
+      subscription = EXCLUDED.subscription,
+      click_base = EXCLUDED.click_base,
+      preview_mode = EXCLUDED.preview_mode,
+      updated_at = EXCLUDED.updated_at,
+      expires_at = EXCLUDED.expires_at
+  `);
+};
+
+const refreshRecord = async (pushKey) => {
+  await databaseQuery((sql) => sql`
+    UPDATE push_subscriptions
+    SET updated_at = NOW(), expires_at = NOW() + ${SUBSCRIPTION_TTL} * INTERVAL '1 second'
+    WHERE push_key = ${pushKey}
+  `);
+};
+
+// ponytail: cleanup is per warm function instance; expiry checks keep delivery correct, and a scheduled job can replace it if state grows.
+let lastCleanupAt = 0;
+const cleanupExpiredState = async () => {
+  if (Date.now() - lastCleanupAt < 60_000) return;
+  lastCleanupAt = Date.now();
+  await databaseTransaction((sql) => [
+    sql`
+      DELETE FROM push_dedupes
+      WHERE (state = 'pending' AND claimed_until <= NOW())
+         OR (state = 'delivered' AND delivered_until <= NOW())
+    `,
+    sql`DELETE FROM push_subscriptions WHERE expires_at <= NOW()`,
+  ]).catch(() => undefined);
 };
 
 export const isEnabled = async () => {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    return process.env.PUSH_ENABLED === 'true';
-  }
-  const live = await redis(['GET', 'push:enabled']);
-  return live === null ? process.env.PUSH_ENABLED === 'true' : live === '1' || live === 'true';
+  if (!databaseUrl()) return process.env.PUSH_ENABLED === 'true';
+  const rows = await databaseQuery((sql) => sql`
+    SELECT value FROM push_settings WHERE key = 'enabled' LIMIT 1
+  `);
+  if (rows.length === 0) return process.env.PUSH_ENABLED === 'true';
+  return ['1', 'true', 'on'].includes(String(rows[0].value).toLowerCase());
 };
 
 export const getPublicConfig = async (req) => ({
@@ -186,13 +294,13 @@ export const upsertSubscription = async (req) => {
       previewMode,
       updatedAt: Date.now(),
     };
-    await saveRecord(managed.pushKey, managed.token, record);
+    await saveRecord(managed.pushKey, record);
     return { pushKey: managed.pushKey, managementToken: managed.token };
   }
 
   const pushKey = randomBytes(32).toString('base64url');
   const managementToken = randomBytes(32).toString('base64url');
-  await saveRecord(pushKey, managementToken, {
+  await saveRecord(pushKey, {
     subscription,
     clickBase,
     previewMode,
@@ -205,8 +313,8 @@ export const upsertSubscription = async (req) => {
 
 export const deleteSubscription = async (req) => {
   requireSameOrigin(req);
-  const { pushKey, record } = await loadManagedRecord(req);
-  await redis(['DEL', subscriptionKey(pushKey), `push:management:${record.managementHash}`]);
+  const { pushKey } = await loadManagedRecord(req);
+  await databaseQuery((sql) => sql`DELETE FROM push_subscriptions WHERE push_key = ${pushKey}`);
 };
 
 export const sanitizeText = (value, maxLength = 160) =>
@@ -303,8 +411,50 @@ export const sendTest = async (req) => {
   });
 };
 
-const removeExpiredRecord = async (pushKey, record) => {
-  await redis(['DEL', subscriptionKey(pushKey), `push:management:${record.managementHash}`]);
+const claimDedupe = async (pushKey, eventId) => {
+  const rows = await databaseQuery((sql) => sql`
+    INSERT INTO push_dedupes (push_key, event_id, state, claimed_until)
+    VALUES (
+      ${pushKey},
+      ${eventId},
+      'pending',
+      NOW() + ${DEDUPE_PENDING_TTL} * INTERVAL '1 second'
+    )
+    ON CONFLICT (push_key, event_id) DO UPDATE SET
+      state = 'pending',
+      claimed_until = NOW() + ${DEDUPE_PENDING_TTL} * INTERVAL '1 second',
+      delivered_until = NULL
+    WHERE (
+      push_dedupes.state = 'pending'
+      AND push_dedupes.claimed_until <= NOW()
+    ) OR (
+      push_dedupes.state = 'delivered'
+      AND push_dedupes.delivered_until <= NOW()
+    )
+    RETURNING push_key
+  `);
+  return rows.length > 0;
+};
+
+const markDedupeDelivered = async (pushKey, eventId) => {
+  await databaseQuery((sql) => sql`
+    UPDATE push_dedupes
+    SET state = 'delivered',
+        claimed_until = NULL,
+        delivered_until = NOW() + ${DEDUPE_TTL} * INTERVAL '1 second'
+    WHERE push_key = ${pushKey} AND event_id = ${eventId}
+  `);
+};
+
+const releaseDedupe = async (pushKey, eventId) => {
+  await databaseQuery((sql) => sql`
+    DELETE FROM push_dedupes
+    WHERE push_key = ${pushKey} AND event_id = ${eventId} AND state = 'pending'
+  `);
+};
+
+const removeExpiredRecord = async (pushKey) => {
+  await databaseQuery((sql) => sql`DELETE FROM push_subscriptions WHERE push_key = ${pushKey}`);
 };
 
 export const handleMatrixNotify = async (req) => {
@@ -323,36 +473,38 @@ export const handleMatrixNotify = async (req) => {
     }
   }
 
+  await cleanupExpiredState();
+  const records = await loadPushRecords(
+    notification.devices
+      .map((device) => device?.pushkey)
+      .filter((pushKey) => typeof pushKey === 'string' && pushKey.length <= 512)
+  );
   const rejected = [];
   let transientFailure = false;
   for (const device of notification.devices) {
     const pushKey = device?.pushkey;
     if (typeof pushKey !== 'string' || pushKey.length > 512) continue;
-    const stored = await redis(['GET', subscriptionKey(pushKey)]);
-    if (!stored) {
+    const record = records.get(pushKey);
+    if (!record) {
       rejected.push(pushKey);
       continue;
     }
 
-    const record = JSON.parse(stored);
-    const dedupeKey = notification.event_id
-      ? `push:dedupe:${pushKey}:${notification.event_id}`
-      : undefined;
-    if (dedupeKey) {
-      const claimed = await redis(['SET', dedupeKey, 'pending', 'NX', 'EX', 30]);
-      if (claimed !== 'OK') continue;
+    const eventId = notification.event_id;
+    if (eventId && !(await claimDedupe(pushKey, eventId))) {
+      continue;
     }
 
     let delivered = false;
     try {
       await send(record, renderNotification(notification, record));
       delivered = true;
-      if (dedupeKey) await redis(['SET', dedupeKey, 'delivered', 'EX', DEDUPE_TTL]);
-      await refreshRecord(pushKey, record).catch(() => undefined);
+      if (eventId) await markDedupeDelivered(pushKey, eventId);
+      await refreshRecord(pushKey).catch(() => undefined);
     } catch (error) {
-      if (dedupeKey && !delivered) await redis(['DEL', dedupeKey]);
+      if (eventId && !delivered) await releaseDedupe(pushKey, eventId);
       if (error?.statusCode === 404 || error?.statusCode === 410) {
-        await removeExpiredRecord(pushKey, record);
+        await removeExpiredRecord(pushKey);
         rejected.push(pushKey);
       } else {
         transientFailure = true;
