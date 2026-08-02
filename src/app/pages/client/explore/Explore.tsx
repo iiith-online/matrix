@@ -35,6 +35,7 @@ import { useNavToActivePathMapper } from '../../../hooks/useNavToActivePathMappe
 import { PageNav, PageNavContent, PageNavHeader } from '../../../components/page';
 import { stopPropagation } from '../../../utils/keyboard';
 import { JoinAddressPrompt } from '../../../components/join-address-prompt';
+import { useOpenCreateRoomModal } from '../../../state/hooks/createRoomModal';
 
 export function AddServer() {
   const mx = useMatrixClient();
@@ -155,6 +156,7 @@ export function AddServer() {
 
 export function Explore() {
   const navigate = useNavigate();
+  const openCreateRoomModal = useOpenCreateRoomModal();
   const [joinAddress, setJoinAddress] = useState(false);
   useNavToActivePathMapper('explore');
   const selectedServer = useExploreServer();
@@ -196,6 +198,22 @@ export function Explore() {
                 </Box>
               </NavItemContent>
             </NavLink>
+          </NavItem>
+          <NavItem variant="Background" radii="400">
+            <NavButton onClick={() => openCreateRoomModal()}>
+              <NavItemContent>
+                <Box as="span" grow="Yes" alignItems="Center" gap="200">
+                  <Avatar size="200" radii="400">
+                    <Icon src={Icons.Plus} size="100" />
+                  </Avatar>
+                  <Box as="span" grow="Yes">
+                    <Text as="span" size="Inherit" truncate>
+                      Create Room
+                    </Text>
+                  </Box>
+                </Box>
+              </NavItemContent>
+            </NavButton>
           </NavItem>
           <NavItem variant="Background" radii="400">
             <NavButton onClick={() => navigate(getCreatePath())}>

@@ -92,6 +92,14 @@ export const clearCacheAndReload = async (mx: MatrixClient) => {
   window.location.reload();
 };
 
+export const checkForUpdatesAndReload = async () => {
+  if ('serviceWorker' in navigator) {
+    const registration = await navigator.serviceWorker.getRegistration();
+    await registration?.update();
+  }
+  window.location.reload();
+};
+
 export const logoutClient = async (mx: MatrixClient) => {
   await disconnectPushNotifications(mx);
   pushSessionToSW();

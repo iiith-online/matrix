@@ -1,11 +1,14 @@
 import React from 'react';
-import { Box, Text, IconButton, Icon, Icons, Scroll, Button, config, toRem } from 'folds';
+import { Box, Text, IconButton, Icon, Icons, Scroll, Button, color, config, toRem } from 'folds';
 import { Page, PageContent, PageHeader } from '../../../components/page';
 import { SequenceCard } from '../../../components/sequence-card';
 import { SequenceCardStyle } from '../styles.css';
 import { SettingTile } from '../../../components/setting-tile';
 import AppIcon from '../../../../../public/icons/web/icon-512.png';
-import { clearCacheAndReload } from '../../../../client/initMatrix';
+import {
+  checkForUpdatesAndReload,
+  clearCacheAndReload,
+} from '../../../../client/initMatrix';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
 
 type AboutProps = {
@@ -13,6 +16,19 @@ type AboutProps = {
 };
 export function About({ requestClose }: AboutProps) {
   const mx = useMatrixClient();
+  const [checkingForUpdate, setCheckingForUpdate] = React.useState(false);
+  const [updateCheckFailed, setUpdateCheckFailed] = React.useState(false);
+
+  const handleCheckForUpdates = async () => {
+    setCheckingForUpdate(true);
+    setUpdateCheckFailed(false);
+    try {
+      await checkForUpdatesAndReload();
+    } catch {
+      setUpdateCheckFailed(true);
+      setCheckingForUpdate(false);
+    }
+  };
 
   return (
     <Page>
@@ -76,6 +92,35 @@ export function About({ requestClose }: AboutProps) {
                   direction="Column"
                   gap="400"
                 >
+                  <SettingTile
+                    title="App updates"
+                    description={
+                      <span aria-live="polite">
+                        Check for a newer version and reload the app.
+                        {updateCheckFailed && (
+                          <Text as="span" style={{ color: color.Critical.Main }} size="T200">
+                            {' '}
+                            Could not check for updates. Try again.
+                          </Text>
+                        )}
+                      </span>
+                    }
+                    after={
+                      <Button
+                        onClick={handleCheckForUpdates}
+                        variant="Secondary"
+                        fill="Soft"
+                        size="300"
+                        radii="300"
+                        outlined
+                        disabled={checkingForUpdate}
+                      >
+                        <Text size="B300">
+                          {checkingForUpdate ? 'Checking…' : 'Check & Reload'}
+                        </Text>
+                      </Button>
+                    }
+                  />
                   <SettingTile
                     title="Clear Cache & Reload"
                     description="Clear all your locally stored data and reload from server."
