@@ -25,8 +25,7 @@ export const useRoomLatestRenderedEvent = (room: Room) => {
         if (reactionOrEditEvent(evt)) continue;
         if (
           !showDecryptionErrors &&
-          (evt.getType() === MessageEvent.RoomMessageEncrypted ||
-            evt.getContent().msgtype === 'm.bad.encrypted')
+          (evt.isDecryptionFailure() || evt.getContent().msgtype === 'm.bad.encrypted')
         ) {
           continue;
         }

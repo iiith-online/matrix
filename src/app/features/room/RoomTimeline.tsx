@@ -510,7 +510,7 @@ const getRoomUnreadInfo = (room: Room, scrollTo = false) => {
 };
 
 const isDecryptionErrorEvent = (mEvent: MatrixEvent) =>
-  mEvent.getType() === MessageEvent.RoomMessageEncrypted ||
+  mEvent.isDecryptionFailure() ||
   mEvent.getContent().msgtype === 'm.bad.encrypted';
 
 export function RoomTimeline({ room, eventId, roomInputRef, editor }: RoomTimelineProps) {

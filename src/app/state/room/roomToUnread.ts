@@ -1,6 +1,7 @@
 import produce from 'immer';
 import { atom, useSetAtom } from 'jotai';
 import {
+  ClientEvent,
   IRoomTimelineData,
   MatrixClient,
   MatrixEvent,
@@ -133,6 +134,21 @@ export const roomToUnreadAtom = atom<RoomToUnread, [RoomToUnreadAction], undefin
     }
     if (action.type === 'PUT') {
       const { unreadInfo } = action;
+      if (unreadInfo.total <= 0 && unreadInfo.highlight <= 0) {
+        if (get(baseRoomToUnread).has(unreadInfo.roomId)) {
+          set(
+            baseRoomToUnread,
+            produce(get(baseRoomToUnread), (draftRoomToUnread) =>
+              deleteUnreadInfo(
+                draftRoomToUnread,
+                getAllParents(get(roomToParentsAtom), unreadInfo.roomId),
+                unreadInfo.roomId
+              )
+            )
+          );
+        }
+        return;
+      }
       const currentUnread = get(baseRoomToUnread).get(unreadInfo.roomId);
       if (currentUnread && unreadEqual(currentUnread, unreadInfoToUnread(unreadInfo))) {
         // Do not update if unread data has not changes
@@ -175,6 +191,40 @@ export const useBindRoomToUnreadAtom = (mx: MatrixClient, unreadAtom: typeof roo
       type: 'RESET',
       unreadInfos: getUnreadInfos(mx),
     });
+  }, [mx, setUnreadAtom]);
+
+  useEffect(() => {
+    const roomListeners = new Map<string, { room: Room; listener: () => void }>();
+    const updateRoomUnread = (room: Room) => {
+      if (roomListeners.has(room.roomId)) return;
+      const listener = () => {
+        if (room.isSpaceRoom()) return;
+        if (getNotificationType(mx, room.roomId) === NotificationType.Mute) {
+          setUnreadAtom({ type: 'DELETE', roomId: room.roomId });
+          return;
+        }
+        setUnreadAtom({ type: 'PUT', unreadInfo: getUnreadInfo(room) });
+      };
+      room.on(RoomEvent.UnreadNotifications, listener);
+      roomListeners.set(room.roomId, { room, listener });
+    };
+    const handleAddRoom = (room: Room) => updateRoomUnread(room);
+    const handleDeleteRoom = (roomId: string) => {
+      const roomListener = roomListeners.get(roomId);
+      roomListener?.room.removeListener(RoomEvent.UnreadNotifications, roomListener.listener);
+      roomListeners.delete(roomId);
+    };
+
+    mx.getRooms().forEach(updateRoomUnread);
+    mx.on(ClientEvent.Room, handleAddRoom);
+    mx.on(ClientEvent.DeleteRoom, handleDeleteRoom);
+    return () => {
+      mx.removeListener(ClientEvent.Room, handleAddRoom);
+      mx.removeListener(ClientEvent.DeleteRoom, handleDeleteRoom);
+      roomListeners.forEach(({ room, listener }) => {
+        room.removeListener(RoomEvent.UnreadNotifications, listener);
+      });
+    };
   }, [mx, setUnreadAtom]);
 
   useSyncState(
