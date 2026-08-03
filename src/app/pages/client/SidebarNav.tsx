@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Scroll } from 'folds';
+import { Box, Scroll, Text } from 'folds';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { ScreenSize, useScreenSizeContext } from '../../hooks/useScreenSize';
 import { useSetting } from '../../state/hooks/settings';
@@ -27,19 +27,36 @@ import { SyncStatus } from './SyncStatus';
 
 function MobileUiOptionNav() {
   const [uiOption] = useSetting(settingsAtom, 'uiOption');
-  let middleTab: React.ReactNode = <ExploreTab />;
-  if (uiOption === 'matrix-ios') middleTab = <SearchTab />;
-  if (uiOption === 'whatsapp') middleTab = <DirectTab />;
+  const middleTab = uiOption === 'matrix-ios' ? <SearchTab /> : <ExploreTab />;
+  const secondTab = uiOption === 'matrix-android' ? <DirectTab /> : <RecentTab />;
+
+  let labels = ['Home', 'Recent', 'Explore', 'Inbox', 'You'];
+  if (uiOption === 'whatsapp') labels = ['Chats', 'Recent', 'Direct', 'Inbox', 'You'];
+  if (uiOption === 'matrix-ios') labels = ['Home', 'Recent', 'Search', 'Inbox', 'You'];
+  if (uiOption === 'matrix-android') labels[1] = 'Direct';
+
+  const tabs = [<HomeTab />, secondTab, middleTab, <InboxTab />, <SettingsTab />];
 
   return (
     <Sidebar data-ui-option-mobile-sidebar>
       <SidebarStack data-ui-option-mobile-nav>
-        <HomeTab />
-        {uiOption === 'matrix-android' ? <DirectTab /> : <RecentTab />}
-        {middleTab}
-        <InboxTab />
-        <UIOptionsTab />
-        <SettingsTab />
+        {tabs.map((tab, index) => (
+          <Box
+            key={labels[index]}
+            data-ui-option-mobile-tab
+            direction="Column"
+            alignItems="Center"
+            justifyContent="Center"
+            gap="100"
+            grow="Yes"
+            shrink="Yes"
+          >
+            {tab}
+            <Text size="T200" priority="400" truncate>
+              {labels[index]}
+            </Text>
+          </Box>
+        ))}
       </SidebarStack>
     </Sidebar>
   );

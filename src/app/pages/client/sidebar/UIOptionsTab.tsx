@@ -1,5 +1,17 @@
-import React, { MouseEventHandler, forwardRef, useState } from 'react';
-import { Box, Icon, Icons, Menu, MenuItem, PopOut, RectCords, Text, config, toRem } from 'folds';
+import React, { MouseEventHandler, ReactNode, forwardRef, useState } from 'react';
+import {
+  Box,
+  Icon,
+  IconButton,
+  Icons,
+  Menu,
+  MenuItem,
+  PopOut,
+  RectCords,
+  Text,
+  config,
+  toRem,
+} from 'folds';
 import FocusTrap from 'focus-trap-react';
 import {
   DarkTheme,
@@ -54,7 +66,18 @@ const getThemeIdForOption = (option: UiOption, themeKind: ThemeKind) => {
   return themeKind === ThemeKind.Dark ? DarkTheme.id : LightTheme.id;
 };
 
-export function UIOptionsTab() {
+type UIOptionsTriggerProps = {
+  expanded: boolean;
+  onClick: MouseEventHandler<HTMLButtonElement>;
+};
+
+function UIOptionsControl({
+  children,
+  menuPosition,
+}: {
+  children: (props: UIOptionsTriggerProps) => ReactNode;
+  menuPosition?: 'Bottom' | 'Right' | 'Top';
+}) {
   const activeTheme = useActiveTheme();
   const screenSize = useScreenSizeContext();
   const [uiOption, setUiOption] = useSetting(settingsAtom, 'uiOption');
@@ -77,26 +100,12 @@ export function UIOptionsTab() {
   };
 
   return (
-    <SidebarItem active={!!menuAnchor}>
-      <SidebarItemTooltip tooltip="UI options">
-        {(triggerRef) => (
-          <SidebarAvatar
-            as="button"
-            ref={triggerRef}
-            aria-label="UI options"
-            aria-expanded={!!menuAnchor}
-            data-testid="ui-options-trigger"
-            outlined
-            onClick={handleOpenMenu}
-          >
-            <Icon src={Icons.Bulb} size="200" />
-          </SidebarAvatar>
-        )}
-      </SidebarItemTooltip>
+    <>
+      {children({ expanded: !!menuAnchor, onClick: handleOpenMenu })}
       {menuAnchor && (
         <PopOut
           anchor={menuAnchor}
-          position={screenSize === ScreenSize.Mobile ? 'Top' : 'Right'}
+          position={menuPosition ?? (screenSize === ScreenSize.Mobile ? 'Top' : 'Right')}
           align="End"
           offset={6}
           content={
@@ -116,6 +125,50 @@ export function UIOptionsTab() {
           }
         />
       )}
-    </SidebarItem>
+    </>
+  );
+}
+
+export function UIOptionsTab() {
+  return (
+    <UIOptionsControl>
+      {({ expanded, onClick }) => (
+        <SidebarItem active={expanded}>
+          <SidebarItemTooltip tooltip="UI options">
+            {(triggerRef) => (
+              <SidebarAvatar
+                as="button"
+                ref={triggerRef}
+                aria-label="UI options"
+                aria-expanded={expanded}
+                data-testid="ui-options-trigger"
+                outlined
+                onClick={onClick}
+              >
+                <Icon src={Icons.Bulb} size="200" />
+              </SidebarAvatar>
+            )}
+          </SidebarItemTooltip>
+        </SidebarItem>
+      )}
+    </UIOptionsControl>
+  );
+}
+
+export function UIOptionsButton() {
+  return (
+    <UIOptionsControl menuPosition="Bottom">
+      {({ expanded, onClick }) => (
+        <IconButton
+          aria-label="UI options"
+          aria-expanded={expanded}
+          data-testid="ui-options-header-trigger"
+          variant="Background"
+          onClick={onClick}
+        >
+          <Icon src={Icons.Bulb} size="200" />
+        </IconButton>
+      )}
+    </UIOptionsControl>
   );
 }

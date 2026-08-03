@@ -31,6 +31,7 @@ import { useSelectedRoom } from '../../../hooks/router/useSelectedRoom';
 import { useHomeRooms } from './useHomeRooms';
 import { useRecentRooms } from '../recent/useRecentRooms';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
+import { ScreenSize, useScreenSizeContext } from '../../../hooks/useScreenSize';
 import { mDirectAtom } from '../../../state/mDirectList';
 import { roomToParentsAtom } from '../../../state/room/roomToParents';
 import { VirtualTile } from '../../../components/virtualizer';
@@ -47,6 +48,7 @@ import { stopPropagation } from '../../../utils/keyboard';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
 import { searchModalAtom } from '../../../state/searchModal';
+import { UIOptionsButton } from '../sidebar/UIOptionsTab';
 import {
   getRoomNotificationMode,
   useRoomsNotificationPreferencesContext,
@@ -127,8 +129,14 @@ function HomeFilterBar({
 
 function HomeHeader() {
   const [uiOption] = useSetting(settingsAtom, 'uiOption');
+  const screenSize = useScreenSizeContext();
   const setSearchOpen = useSetAtom(searchModalAtom);
   const isWhatsapp = uiOption === 'whatsapp';
+  const isIos = uiOption === 'matrix-ios';
+  const showUiOptions = screenSize === ScreenSize.Mobile && uiOption !== 'matrix';
+  let title = 'Home';
+  if (isWhatsapp) title = 'Chats';
+  if (isIos) title = 'Messages';
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
 
   const handleOpenMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
@@ -145,10 +153,10 @@ function HomeHeader() {
         <Box alignItems="Center" grow="Yes" gap="300">
           <Box grow="Yes">
             <Text size="H4" truncate>
-              {isWhatsapp ? 'Chats' : 'Home'}
+              {title}
             </Text>
           </Box>
-          {isWhatsapp && (
+          {(isWhatsapp || isIos) && (
             <IconButton
               aria-label="Search"
               variant="Background"
@@ -157,6 +165,7 @@ function HomeHeader() {
               <Icon src={Icons.Search} size="200" />
             </IconButton>
           )}
+          {showUiOptions && <UIOptionsButton />}
           <Box>
             <IconButton
               aria-label="Home options"
@@ -261,6 +270,7 @@ export function Home() {
   const selectedRoomId = useSelectedRoom();
   const isWhatsapp = uiOption === 'whatsapp';
   const isMatrixAndroid = uiOption === 'matrix-android';
+  const isMatrixIos = uiOption === 'matrix-ios';
   const noRoomToDisplay = rooms.length === 0 && recentRooms.length === 0;
   const [closedCategories, setClosedCategories] = useAtom(useClosedNavCategoriesAtom());
   const categoryDefaultsApplied = useRef(false);
@@ -287,26 +297,30 @@ export function Home() {
     return Array.from(rooms).sort(factoryRoomIdByAtoZ(mx));
   }, [mx, rooms, roomsCategoryClosed]);
 
-  const filterRooms = useMemo(
-    () => (roomIds: string[]) => {
-      if (!isMatrixAndroid || homeFilter === 'all') return roomIds;
-      return roomIds.filter((roomId) =>
-        homeFilter === 'direct' ? mDirects.has(roomId) : roomToParents.has(roomId)
-      );
-    },
-    [homeFilter, isMatrixAndroid, mDirects, roomToParents]
-  );
-
-  const filteredRooms = useMemo(() => filterRooms(sortedRooms), [filterRooms, sortedRooms]);
-  const filteredRecentRooms = useMemo(
-    () => filterRooms(sortedRecentRooms),
-    [filterRooms, sortedRecentRooms]
-  );
-  const whatsappRooms = useMemo(
+  const conversationRooms = useMemo(
     () => Array.from(new Set([...rooms, ...recentRooms])).sort(factoryRoomIdByActivity(mx)),
     [mx, recentRooms, rooms]
   );
-  const recentRoomsForView = isWhatsapp ? whatsappRooms : filteredRecentRooms;
+  const filteredConversationRooms = useMemo(() => {
+    if (!isMatrixAndroid || homeFilter === 'all') return conversationRooms;
+    return conversationRooms.filter((roomId) =>
+      homeFilter === 'direct' ? mDirects.has(roomId) : roomToParents.has(roomId)
+    );
+  }, [conversationRooms, homeFilter, isMatrixAndroid, mDirects, roomToParents]);
+
+  const filteredRooms = useMemo(() => {
+    if (!isMatrixAndroid || homeFilter === 'all') return sortedRooms;
+    return sortedRooms.filter((roomId) =>
+      homeFilter === 'direct' ? mDirects.has(roomId) : roomToParents.has(roomId)
+    );
+  }, [homeFilter, isMatrixAndroid, mDirects, roomToParents, sortedRooms]);
+  const filteredRecentRooms = useMemo(() => {
+    if (!isMatrixAndroid || homeFilter === 'all') return sortedRecentRooms;
+    return sortedRecentRooms.filter((roomId) =>
+      homeFilter === 'direct' ? mDirects.has(roomId) : roomToParents.has(roomId)
+    );
+  }, [homeFilter, isMatrixAndroid, mDirects, roomToParents, sortedRecentRooms]);
+  const recentRoomsForView = filteredRecentRooms;
 
   const recentVirtualizer = useVirtualizer({
     count: recentRoomsForView.length,
@@ -319,6 +333,13 @@ export function Home() {
     count: filteredRooms.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 38,
+    overscan: 10,
+  });
+
+  const conversationVirtualizer = useVirtualizer({
+    count: filteredConversationRooms.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => (isWhatsapp ? 64 : 52),
     overscan: 10,
   });
 
@@ -337,10 +358,32 @@ export function Home() {
         <RoomNavItem
           room={room}
           selected={selectedRoomId === roomId}
-          showAvatar={whatsappStyle || direct}
+          showAvatar={whatsappStyle || direct || isMatrixIos}
           direct={direct}
           spaceName={whatsappStyle ? undefined : getRoomSpaceName(mx, roomToParents, roomId)}
           style={{ minHeight: toRem(whatsappStyle ? 64 : 44) }}
+          linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
+          notificationMode={getRoomNotificationMode(notificationPreferences, room.roomId)}
+        />
+      </VirtualTile>
+    );
+  };
+
+  const renderConversationRoom = (vItem: VirtualItem) => {
+    const roomId = filteredConversationRooms[vItem.index];
+    const room = mx.getRoom(roomId);
+    if (!room) return null;
+
+    const direct = mDirects.has(roomId);
+    return (
+      <VirtualTile virtualItem={vItem} key={roomId} ref={conversationVirtualizer.measureElement}>
+        <RoomNavItem
+          room={room}
+          selected={selectedRoomId === roomId}
+          showAvatar={isWhatsapp || isMatrixIos || direct}
+          direct={direct}
+          spaceName={isWhatsapp ? undefined : getRoomSpaceName(mx, roomToParents, roomId)}
+          style={{ minHeight: toRem(isWhatsapp ? 64 : 52) }}
           linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
           notificationMode={getRoomNotificationMode(notificationPreferences, room.roomId)}
         />
@@ -355,23 +398,25 @@ export function Home() {
         <HomeFilterBar filter={homeFilter} onChange={setHomeFilter} />
       )}
       {noRoomToDisplay && <HomeEmpty />}
-      {!noRoomToDisplay && isWhatsapp && (
+      {!noRoomToDisplay && (isWhatsapp || isMatrixAndroid) && (
         <PageNavContent scrollRef={scrollRef}>
           <Box direction="Column">
-            <NavCategory data-ui-option-whatsapp-chats>
+            <NavCategory data-ui-option-conversation-list>
               <div
                 style={{
                   position: 'relative',
-                  height: recentVirtualizer.getTotalSize(),
+                  height: conversationVirtualizer.getTotalSize(),
                 }}
               >
-                {recentVirtualizer.getVirtualItems().map((vItem) => renderRecentRoom(vItem, true))}
+                {conversationVirtualizer
+                  .getVirtualItems()
+                  .map((vItem) => renderConversationRoom(vItem))}
               </div>
             </NavCategory>
           </Box>
         </PageNavContent>
       )}
-      {!noRoomToDisplay && !isWhatsapp && (
+      {!noRoomToDisplay && !isWhatsapp && !isMatrixAndroid && (
         <PageNavContent scrollRef={scrollRef}>
           <Box direction="Column" gap="300">
             <NavCategory>
@@ -405,6 +450,7 @@ export function Home() {
                       <RoomNavItem
                         room={room}
                         selected={selected}
+                        showAvatar={isMatrixIos}
                         linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
                         notificationMode={getRoomNotificationMode(
                           notificationPreferences,

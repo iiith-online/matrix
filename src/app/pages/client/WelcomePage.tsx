@@ -26,6 +26,8 @@ import {
 import { nameInitials } from '../../utils/common';
 import { SequenceCard } from '../../components/sequence-card';
 import { SequenceCardStyle } from '../../features/settings/styles.css';
+import { useSetting } from '../../state/hooks/settings';
+import { settingsAtom } from '../../state/settings';
 
 function UnreadSummary({ unread }: { unread?: Unread }) {
   if (!unread || (unread.total === 0 && unread.highlight === 0)) return null;
@@ -106,7 +108,30 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function HomeDashboard() {
+function ConversationDashboard({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <Page>
+      <Box
+        grow="Yes"
+        alignItems="Center"
+        justifyContent="Center"
+        style={{ padding: config.space.S400 }}
+      >
+        <Box direction="Column" alignItems="Center" gap="200" style={{ maxWidth: toRem(360) }}>
+          <Icon size="600" src={Icons.Message} />
+          <Text size="H2" align="Center">
+            {title}
+          </Text>
+          <Text size="T300" priority="400" align="Center">
+            {subtitle}
+          </Text>
+        </Box>
+      </Box>
+    </Page>
+  );
+}
+
+function MatrixHomeDashboard() {
   const mx = useMatrixClient();
   const useAuthentication = useMediaAuthentication();
   const navigate = useNavigate();
@@ -255,6 +280,30 @@ function HomeDashboard() {
       </Box>
     </Page>
   );
+}
+
+function HomeDashboard() {
+  const [uiOption] = useSetting(settingsAtom, 'uiOption');
+
+  if (uiOption === 'whatsapp') {
+    return (
+      <ConversationDashboard
+        title="Select a chat"
+        subtitle="Choose a conversation from your chats to start messaging."
+      />
+    );
+  }
+
+  if (uiOption === 'matrix-ios') {
+    return (
+      <ConversationDashboard
+        title="Select a conversation"
+        subtitle="Choose a conversation to view messages and shared history."
+      />
+    );
+  }
+
+  return <MatrixHomeDashboard />;
 }
 
 export function WelcomePage({ homeDashboard = false }: { homeDashboard?: boolean }) {
