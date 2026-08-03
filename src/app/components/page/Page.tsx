@@ -79,7 +79,9 @@ export function PageNavContent({
         hideTrack
         visibility="Hover"
       >
-        <div className={css.PageNavContent}>{children}</div>
+        <div className={css.PageNavContent} data-ui-option-page-content>
+          {children}
+        </div>
       </Scroll>
     </Box>
   );

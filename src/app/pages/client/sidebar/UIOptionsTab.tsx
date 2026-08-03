@@ -9,6 +9,7 @@ import {
   WhatsAppDarkTheme,
   WhatsAppTheme,
 } from '../../../hooks/useTheme';
+import { ScreenSize, useScreenSizeContext } from '../../../hooks/useScreenSize';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom, UI_OPTIONS, UiOption } from '../../../state/settings';
 import { stopPropagation } from '../../../utils/keyboard';
@@ -55,6 +56,7 @@ const getThemeIdForOption = (option: UiOption, themeKind: ThemeKind) => {
 
 export function UIOptionsTab() {
   const activeTheme = useActiveTheme();
+  const screenSize = useScreenSizeContext();
   const [uiOption, setUiOption] = useSetting(settingsAtom, 'uiOption');
   const [, setThemeId] = useSetting(settingsAtom, 'themeId');
   const [, setUseSystemTheme] = useSetting(settingsAtom, 'useSystemTheme');
@@ -94,7 +96,7 @@ export function UIOptionsTab() {
       {menuAnchor && (
         <PopOut
           anchor={menuAnchor}
-          position="Right"
+          position={screenSize === ScreenSize.Mobile ? 'Top' : 'Right'}
           align="End"
           offset={6}
           content={

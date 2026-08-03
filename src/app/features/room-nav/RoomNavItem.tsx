@@ -397,6 +397,7 @@ export function RoomNavItem({
       highlight={unread !== undefined}
       aria-selected={selected}
       data-hover={!!menuAnchor}
+      data-ui-option-room-row
       onContextMenu={handleContextMenu}
       style={style}
       {...hoverProps}
@@ -408,9 +409,9 @@ export function RoomNavItem({
         aria-label={[roomName, previewLine, lastActivityLabel].filter(Boolean).join(' · ')}
         onClick={room.isCallRoom() ? handleStartCall : undefined}
       >
-        <NavItemContent>
+        <NavItemContent data-ui-option-room-row-content>
           <Box as="span" grow="Yes" alignItems="Center" gap="200">
-            <Avatar size="200" radii="400">
+            <Avatar size="200" radii="400" data-ui-option-room-avatar>
               {showAvatar ? (
                 <RoomAvatar
                   roomId={room.roomId}

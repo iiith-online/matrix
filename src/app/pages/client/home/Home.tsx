@@ -1,15 +1,9 @@
-import React, {
-  MouseEventHandler,
-  forwardRef,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { MouseEventHandler, forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
+  Chip,
   Icon,
   IconButton,
   Icons,
@@ -21,8 +15,8 @@ import {
   config,
   toRem,
 } from 'folds';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { useAtom, useAtomValue } from 'jotai';
+import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import FocusTrap from 'focus-trap-react';
 import { factoryRoomIdByActivity, factoryRoomIdByAtoZ } from '../../../utils/sort';
 import {
@@ -31,10 +25,7 @@ import {
   NavEmptyCenter,
   NavEmptyLayout,
 } from '../../../components/nav';
-import {
-  getExplorePath,
-  getHomeRoomPath,
-} from '../../pathUtils';
+import { getExplorePath, getHomeRoomPath } from '../../pathUtils';
 import { getCanonicalAliasOrRoomId } from '../../../utils/matrix';
 import { useSelectedRoom } from '../../../hooks/router/useSelectedRoom';
 import { useHomeRooms } from './useHomeRooms';
@@ -55,6 +46,7 @@ import { useClosedNavCategoriesAtom } from '../../../state/hooks/closedNavCatego
 import { stopPropagation } from '../../../utils/keyboard';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
+import { searchModalAtom } from '../../../state/searchModal';
 import {
   getRoomNotificationMode,
   useRoomsNotificationPreferencesContext,
@@ -94,7 +86,49 @@ const HomeMenu = forwardRef<HTMLDivElement, HomeMenuProps>(({ requestClose }, re
   );
 });
 
+type HomeFilter = 'all' | 'direct' | 'spaces';
+
+function HomeFilterBar({
+  filter,
+  onChange,
+}: {
+  filter: HomeFilter;
+  onChange: (filter: HomeFilter) => void;
+}) {
+  const filters: Array<{ id: HomeFilter; label: string }> = [
+    { id: 'all', label: 'All' },
+    { id: 'direct', label: 'Direct' },
+    { id: 'spaces', label: 'Spaces' },
+  ];
+
+  return (
+    <Box
+      data-ui-option-home-filters
+      alignItems="Center"
+      gap="100"
+      style={{ padding: `${config.space.S100} ${config.space.S200} 0` }}
+    >
+      {filters.map((item) => (
+        <Chip
+          key={item.id}
+          data-testid={`home-filter-${item.id}`}
+          variant={item.id === filter ? 'Primary' : 'Secondary'}
+          outlined={item.id === filter}
+          radii="Pill"
+          onClick={() => onChange(item.id)}
+          aria-pressed={item.id === filter}
+        >
+          <Text size="B300">{item.label}</Text>
+        </Chip>
+      ))}
+    </Box>
+  );
+}
+
 function HomeHeader() {
+  const [uiOption] = useSetting(settingsAtom, 'uiOption');
+  const setSearchOpen = useSetAtom(searchModalAtom);
+  const isWhatsapp = uiOption === 'whatsapp';
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
 
   const handleOpenMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
@@ -107,15 +141,29 @@ function HomeHeader() {
 
   return (
     <>
-      <PageNavHeader>
+      <PageNavHeader data-ui-option-home-header>
         <Box alignItems="Center" grow="Yes" gap="300">
           <Box grow="Yes">
             <Text size="H4" truncate>
-              Home
+              {isWhatsapp ? 'Chats' : 'Home'}
             </Text>
           </Box>
+          {isWhatsapp && (
+            <IconButton
+              aria-label="Search"
+              variant="Background"
+              onClick={() => setSearchOpen(true)}
+            >
+              <Icon src={Icons.Search} size="200" />
+            </IconButton>
+          )}
           <Box>
-            <IconButton aria-pressed={!!menuAnchor} variant="Background" onClick={handleOpenMenu}>
+            <IconButton
+              aria-label="Home options"
+              aria-pressed={!!menuAnchor}
+              variant="Background"
+              onClick={handleOpenMenu}
+            >
               <Icon src={Icons.VerticalDots} size="200" />
             </IconButton>
           </Box>
@@ -207,8 +255,12 @@ export function Home() {
   const mDirects = useAtomValue(mDirectAtom);
   const roomToParents = useAtomValue(roomToParentsAtom);
   const notificationPreferences = useRoomsNotificationPreferencesContext();
+  const [uiOption] = useSetting(settingsAtom, 'uiOption');
+  const [homeFilter, setHomeFilter] = useState<HomeFilter>('all');
 
   const selectedRoomId = useSelectedRoom();
+  const isWhatsapp = uiOption === 'whatsapp';
+  const isMatrixAndroid = uiOption === 'matrix-android';
   const noRoomToDisplay = rooms.length === 0 && recentRooms.length === 0;
   const [closedCategories, setClosedCategories] = useAtom(useClosedNavCategoriesAtom());
   const categoryDefaultsApplied = useRef(false);
@@ -226,10 +278,7 @@ export function Home() {
     !categoryDefaultsApplied.current || closedCategories.has(DEFAULT_CATEGORY_ID);
 
   const sortedRecentRooms = useMemo(
-    () =>
-      recentCategoryClosed
-        ? []
-        : Array.from(recentRooms).sort(factoryRoomIdByActivity(mx)),
+    () => (recentCategoryClosed ? [] : Array.from(recentRooms).sort(factoryRoomIdByActivity(mx))),
     [mx, recentCategoryClosed, recentRooms]
   );
 
@@ -238,15 +287,36 @@ export function Home() {
     return Array.from(rooms).sort(factoryRoomIdByAtoZ(mx));
   }, [mx, rooms, roomsCategoryClosed]);
 
+  const filterRooms = useMemo(
+    () => (roomIds: string[]) => {
+      if (!isMatrixAndroid || homeFilter === 'all') return roomIds;
+      return roomIds.filter((roomId) =>
+        homeFilter === 'direct' ? mDirects.has(roomId) : roomToParents.has(roomId)
+      );
+    },
+    [homeFilter, isMatrixAndroid, mDirects, roomToParents]
+  );
+
+  const filteredRooms = useMemo(() => filterRooms(sortedRooms), [filterRooms, sortedRooms]);
+  const filteredRecentRooms = useMemo(
+    () => filterRooms(sortedRecentRooms),
+    [filterRooms, sortedRecentRooms]
+  );
+  const whatsappRooms = useMemo(
+    () => Array.from(new Set([...rooms, ...recentRooms])).sort(factoryRoomIdByActivity(mx)),
+    [mx, recentRooms, rooms]
+  );
+  const recentRoomsForView = isWhatsapp ? whatsappRooms : filteredRecentRooms;
+
   const recentVirtualizer = useVirtualizer({
-    count: sortedRecentRooms.length,
+    count: recentRoomsForView.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 44,
     overscan: 10,
   });
 
   const virtualizer = useVirtualizer({
-    count: sortedRooms.length,
+    count: filteredRooms.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 38,
     overscan: 10,
@@ -256,12 +326,52 @@ export function Home() {
     closedCategories.has(categoryId)
   );
 
+  const renderRecentRoom = (vItem: VirtualItem, whatsappStyle = false) => {
+    const roomId = recentRoomsForView[vItem.index];
+    const room = mx.getRoom(roomId);
+    if (!room) return null;
+
+    const direct = mDirects.has(roomId);
+    return (
+      <VirtualTile virtualItem={vItem} key={roomId} ref={recentVirtualizer.measureElement}>
+        <RoomNavItem
+          room={room}
+          selected={selectedRoomId === roomId}
+          showAvatar={whatsappStyle || direct}
+          direct={direct}
+          spaceName={whatsappStyle ? undefined : getRoomSpaceName(mx, roomToParents, roomId)}
+          style={{ minHeight: toRem(whatsappStyle ? 64 : 44) }}
+          linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
+          notificationMode={getRoomNotificationMode(notificationPreferences, room.roomId)}
+        />
+      </VirtualTile>
+    );
+  };
+
   return (
     <PageNav>
       <HomeHeader />
-      {noRoomToDisplay ? (
-        <HomeEmpty />
-      ) : (
+      {isMatrixAndroid && !noRoomToDisplay && (
+        <HomeFilterBar filter={homeFilter} onChange={setHomeFilter} />
+      )}
+      {noRoomToDisplay && <HomeEmpty />}
+      {!noRoomToDisplay && isWhatsapp && (
+        <PageNavContent scrollRef={scrollRef}>
+          <Box direction="Column">
+            <NavCategory data-ui-option-whatsapp-chats>
+              <div
+                style={{
+                  position: 'relative',
+                  height: recentVirtualizer.getTotalSize(),
+                }}
+              >
+                {recentVirtualizer.getVirtualItems().map((vItem) => renderRecentRoom(vItem, true))}
+              </div>
+            </NavCategory>
+          </Box>
+        </PageNavContent>
+      )}
+      {!noRoomToDisplay && !isWhatsapp && (
         <PageNavContent scrollRef={scrollRef}>
           <Box direction="Column" gap="300">
             <NavCategory>
@@ -281,7 +391,7 @@ export function Home() {
                 }}
               >
                 {virtualizer.getVirtualItems().map((vItem) => {
-                  const roomId = sortedRooms[vItem.index];
+                  const roomId = filteredRooms[vItem.index];
                   const room = mx.getRoom(roomId);
                   if (!room) return null;
                   const selected = selectedRoomId === roomId;
@@ -322,34 +432,7 @@ export function Home() {
                   height: recentVirtualizer.getTotalSize(),
                 }}
               >
-                {recentVirtualizer.getVirtualItems().map((vItem) => {
-                  const roomId = sortedRecentRooms[vItem.index];
-                  const room = mx.getRoom(roomId);
-                  if (!room) return null;
-
-                  const direct = mDirects.has(roomId);
-                  return (
-                    <VirtualTile
-                      virtualItem={vItem}
-                      key={roomId}
-                      ref={recentVirtualizer.measureElement}
-                    >
-                      <RoomNavItem
-                        room={room}
-                        selected={selectedRoomId === roomId}
-                        showAvatar={direct}
-                        direct={direct}
-                        spaceName={getRoomSpaceName(mx, roomToParents, roomId)}
-                        style={{ minHeight: toRem(44) }}
-                        linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
-                        notificationMode={getRoomNotificationMode(
-                          notificationPreferences,
-                          room.roomId
-                        )}
-                      />
-                    </VirtualTile>
-                  );
-                })}
+                {recentVirtualizer.getVirtualItems().map((vItem) => renderRecentRoom(vItem))}
               </div>
             </NavCategory>
           </Box>
