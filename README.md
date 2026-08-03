@@ -41,6 +41,7 @@ npm run lint
 ## Deployment
 
 The `dev` branch is used for active development and Vercel Preview deployments. Merge to `main` only when a change is ready for production; Vercel serves `main` as the production deployment.
+UI options are developed on the `ui-options` branch.
 
 ## Self-hosting
 
