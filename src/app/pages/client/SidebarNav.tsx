@@ -17,6 +17,7 @@ import {
   SettingsTab,
   UnverifiedTab,
   SearchTab,
+  UIOptionsTab,
 } from './sidebar';
 import { SyncStatus } from './SyncStatus';
 
@@ -48,6 +49,7 @@ export function SidebarNav() {
               <UnverifiedTab />
               <InboxTab />
               <SyncStatus mx={mx} />
+              <UIOptionsTab />
               <SettingsTab />
             </SidebarStack>
           </>

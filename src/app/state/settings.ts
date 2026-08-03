@@ -9,6 +9,15 @@ export type DateFormat =
   | 'YYYY-MM-DD'
   | '';
 export type MessageSpacing = '0' | '100' | '200' | '300' | '400' | '500';
+export type UiOption = 'matrix' | 'whatsapp' | 'matrix-android' | 'matrix-ios';
+
+export const UI_OPTIONS: ReadonlyArray<{ id: UiOption; label: string }> = [
+  { id: 'matrix', label: 'Matrix (Web)' },
+  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'matrix-android', label: 'Matrix Android' },
+  { id: 'matrix-ios', label: 'Matrix iOS' },
+];
+
 export enum MessageLayout {
   Modern = 0,
   Compact = 1,
@@ -16,6 +25,7 @@ export enum MessageLayout {
 }
 
 export interface Settings {
+  uiOption: UiOption;
   themeId?: string;
   useSystemTheme: boolean;
   lightThemeId?: string;
@@ -54,6 +64,7 @@ export interface Settings {
 }
 
 const defaultSettings: Settings = {
+  uiOption: 'matrix',
   themeId: undefined,
   useSystemTheme: true,
   lightThemeId: undefined,

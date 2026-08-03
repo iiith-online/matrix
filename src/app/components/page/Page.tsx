@@ -17,6 +17,7 @@ export function PageRoot({ nav, children }: PageRootProps) {
     <Box
       grow="Yes"
       className={classNames(ContainerColor({ variant: 'Background' }), css.PageRoot)}
+      data-ui-option-page-root
     >
       {nav}
       {screenSize !== ScreenSize.Mobile && (
@@ -39,6 +40,7 @@ export function PageNav({ size, children }: ClientDrawerLayoutProps & css.PageNa
       grow={isMobile ? 'Yes' : undefined}
       className={css.PageNav({ size })}
       shrink={isMobile ? 'Yes' : 'No'}
+      data-ui-option-page-nav
     >
       <Box grow="Yes" direction="Column">
         {children}
@@ -53,6 +55,7 @@ export const PageNavHeader = as<'header', css.PageNavHeaderVariants>(
       className={classNames(css.PageNavHeader({ outlined }), className)}
       variant="Background"
       size="600"
+      data-ui-option-page-header
       {...props}
       ref={ref}
     />

@@ -17,6 +17,7 @@ export function UnAuthRouteThemeManager() {
   useLayoutEffect(() => {
     document.body.className = '';
     document.body.classList.add(configClass, varsClass);
+    delete document.body.dataset.uiOption;
     if (systemThemeKind === ThemeKind.Dark) {
       document.body.classList.add(...DarkTheme.classNames);
     }
@@ -32,12 +33,14 @@ export function UnAuthRouteThemeManager() {
 export function AuthRouteThemeManager({ children }: { children: ReactNode }) {
   const activeTheme = useActiveTheme();
   const [monochromeMode] = useSetting(settingsAtom, 'monochromeMode');
+  const [uiOption] = useSetting(settingsAtom, 'uiOption');
 
   useLayoutEffect(() => {
     document.body.className = '';
     document.body.classList.add(configClass, varsClass);
 
     document.body.classList.add(...activeTheme.classNames);
+    document.body.dataset.uiOption = uiOption;
 
     if (monochromeMode) {
       document.body.style.filter = 'grayscale(1)';
@@ -45,7 +48,7 @@ export function AuthRouteThemeManager({ children }: { children: ReactNode }) {
       document.body.style.filter = '';
     }
     document.body.style.backgroundColor = color.Background.Container;
-  }, [activeTheme, monochromeMode]);
+  }, [activeTheme, monochromeMode, uiOption]);
 
   return <ThemeContextProvider value={activeTheme}>{children}</ThemeContextProvider>;
 }
