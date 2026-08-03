@@ -9,9 +9,10 @@ export type DateFormat =
   | 'YYYY-MM-DD'
   | '';
 export type MessageSpacing = '0' | '100' | '200' | '300' | '400' | '500';
-export type UiOption = 'matrix' | 'matrix-android';
+export type UiOption = 'auto' | 'matrix' | 'matrix-android';
 
 export const UI_OPTIONS: ReadonlyArray<{ id: UiOption; label: string }> = [
+  { id: 'auto', label: 'Auto' },
   { id: 'matrix', label: 'Matrix (Web)' },
   { id: 'matrix-android', label: 'Matrix Android' },
 ];
@@ -105,7 +106,9 @@ export const getSettings = () => {
   if (settings === null) return defaultSettings;
   const savedSettings = JSON.parse(settings) as Partial<Settings>;
   const uiOption: UiOption =
-    savedSettings.uiOption === 'matrix-android' ? 'matrix-android' : 'matrix';
+    savedSettings.uiOption === 'auto' || savedSettings.uiOption === 'matrix-android'
+      ? savedSettings.uiOption
+      : 'matrix';
   return {
     ...defaultSettings,
     ...savedSettings,

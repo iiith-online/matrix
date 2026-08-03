@@ -30,7 +30,6 @@ import { useSelectedRoom } from '../../../hooks/router/useSelectedRoom';
 import { useHomeRooms } from './useHomeRooms';
 import { useRecentRooms } from '../recent/useRecentRooms';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
-import { ScreenSize, useScreenSizeContext } from '../../../hooks/useScreenSize';
 import { mDirectAtom } from '../../../state/mDirectList';
 import { roomToParentsAtom } from '../../../state/room/roomToParents';
 import { VirtualTile } from '../../../components/virtualizer';
@@ -46,7 +45,6 @@ import { useClosedNavCategoriesAtom } from '../../../state/hooks/closedNavCatego
 import { stopPropagation } from '../../../utils/keyboard';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
-import { UIOptionsButton } from '../sidebar/UIOptionsTab';
 import {
   getRoomNotificationMode,
   useRoomsNotificationPreferencesContext,
@@ -87,8 +85,6 @@ const HomeMenu = forwardRef<HTMLDivElement, HomeMenuProps>(({ requestClose }, re
 });
 
 function HomeHeader() {
-  const [uiOption] = useSetting(settingsAtom, 'uiOption');
-  const screenSize = useScreenSizeContext();
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
 
   const handleOpenMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
@@ -108,7 +104,6 @@ function HomeHeader() {
               Home
             </Text>
           </Box>
-          {screenSize === ScreenSize.Mobile && uiOption === 'matrix-android' && <UIOptionsButton />}
           <Box>
             <IconButton
               aria-label="Home options"

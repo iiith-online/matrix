@@ -10,6 +10,7 @@ import {
 } from '../hooks/useTheme';
 import { useSetting } from '../state/hooks/settings';
 import { settingsAtom } from '../state/settings';
+import { useResolvedUiOption } from '../hooks/useUiOption';
 
 export function UnAuthRouteThemeManager() {
   const systemThemeKind = useSystemThemeKind();
@@ -33,7 +34,7 @@ export function UnAuthRouteThemeManager() {
 export function AuthRouteThemeManager({ children }: { children: ReactNode }) {
   const activeTheme = useActiveTheme();
   const [monochromeMode] = useSetting(settingsAtom, 'monochromeMode');
-  const [uiOption] = useSetting(settingsAtom, 'uiOption');
+  const uiOption = useResolvedUiOption();
 
   useLayoutEffect(() => {
     document.body.className = '';

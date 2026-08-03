@@ -2,8 +2,7 @@ import React, { useRef } from 'react';
 import { Box, Scroll, Text } from 'folds';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { ScreenSize, useScreenSizeContext } from '../../hooks/useScreenSize';
-import { useSetting } from '../../state/hooks/settings';
-import { settingsAtom } from '../../state/settings';
+import { useResolvedUiOption } from '../../hooks/useUiOption';
 
 import {
   Sidebar,
@@ -20,7 +19,6 @@ import {
   SettingsTab,
   UnverifiedTab,
   SearchTab,
-  UIOptionsTab,
 } from './sidebar';
 import { SyncStatus } from './SyncStatus';
 
@@ -56,7 +54,7 @@ function MobileUiOptionNav() {
 export function SidebarNav() {
   const mx = useMatrixClient();
   const screenSize = useScreenSizeContext();
-  const [uiOption] = useSetting(settingsAtom, 'uiOption');
+  const uiOption = useResolvedUiOption();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   if (screenSize === ScreenSize.Mobile && uiOption === 'matrix-android') {
@@ -87,7 +85,6 @@ export function SidebarNav() {
               <UnverifiedTab />
               <InboxTab />
               <SyncStatus mx={mx} />
-              <UIOptionsTab />
               <SettingsTab />
             </SidebarStack>
           </>

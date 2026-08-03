@@ -33,7 +33,14 @@ import FocusTrap from 'focus-trap-react';
 import { Page, PageContent, PageHeader } from '../../../components/page';
 import { SequenceCard } from '../../../components/sequence-card';
 import { useSetting } from '../../../state/hooks/settings';
-import { DateFormat, MessageLayout, MessageSpacing, settingsAtom } from '../../../state/settings';
+import {
+  DateFormat,
+  MessageLayout,
+  MessageSpacing,
+  settingsAtom,
+  UI_OPTIONS,
+  UiOption,
+} from '../../../state/settings';
 import { SettingTile } from '../../../components/setting-tile';
 import { KeySymbol } from '../../../utils/key-symbol';
 import { isMacOS } from '../../../utils/user-agent';
@@ -42,6 +49,7 @@ import {
   LightTheme,
   Theme,
   ThemeKind,
+  useActiveTheme,
   useSystemThemeKind,
   useThemeNames,
   useThemes,
@@ -140,6 +148,97 @@ function SelectTheme({ disabled }: { disabled?: boolean }) {
               selected={selectedTheme}
               onSelect={handleThemeSelect}
             />
+          </FocusTrap>
+        }
+      />
+    </>
+  );
+}
+
+const getThemeIdForUiOption = (option: UiOption, themeKind: ThemeKind) => {
+  if (option === 'matrix-android') return DarkTheme.id;
+  return themeKind === ThemeKind.Dark ? DarkTheme.id : LightTheme.id;
+};
+
+function SelectUiOption() {
+  const activeTheme = useActiveTheme();
+  const [uiOption, setUiOption] = useSetting(settingsAtom, 'uiOption');
+  const [, setThemeId] = useSetting(settingsAtom, 'themeId');
+  const [, setUseSystemTheme] = useSetting(settingsAtom, 'useSystemTheme');
+  const [menuCords, setMenuCords] = useState<RectCords>();
+
+  const selectedOption = UI_OPTIONS.find((option) => option.id === uiOption) ?? UI_OPTIONS[0];
+
+  const handleMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
+    setMenuCords(evt.currentTarget.getBoundingClientRect());
+  };
+
+  const handleSelect = (option: UiOption) => {
+    setUiOption(option);
+    if (option !== 'auto') {
+      setThemeId(getThemeIdForUiOption(option, activeTheme.kind));
+      setUseSystemTheme(false);
+    }
+    setMenuCords(undefined);
+  };
+
+  return (
+    <>
+      <Button
+        data-testid="ui-option-settings-trigger"
+        style={{ minWidth: toRem(128) }}
+        size="300"
+        variant="Secondary"
+        outlined
+        fill="Soft"
+        radii="300"
+        after={<Icon size="300" src={Icons.ChevronBottom} />}
+        onClick={handleMenu}
+      >
+        <Text size="T300" truncate>
+          {selectedOption.label}
+        </Text>
+      </Button>
+      <PopOut
+        anchor={menuCords}
+        offset={5}
+        position="Bottom"
+        align="End"
+        content={
+          <FocusTrap
+            focusTrapOptions={{
+              initialFocus: false,
+              onDeactivate: () => setMenuCords(undefined),
+              clickOutsideDeactivates: true,
+              isKeyForward: (evt: KeyboardEvent) =>
+                evt.key === 'ArrowDown' || evt.key === 'ArrowRight',
+              isKeyBackward: (evt: KeyboardEvent) =>
+                evt.key === 'ArrowUp' || evt.key === 'ArrowLeft',
+              escapeDeactivates: stopPropagation,
+            }}
+          >
+            <Menu style={{ maxWidth: toRem(220), width: '100vw' }}>
+              <Box direction="Column" gap="100" style={{ padding: config.space.S100 }}>
+                {UI_OPTIONS.map((option) => (
+                  <MenuItem
+                    key={option.id}
+                    data-testid={`ui-option-settings-${option.id}`}
+                    variant={option.id === uiOption ? 'Primary' : 'Surface'}
+                    size="300"
+                    radii="300"
+                    aria-pressed={option.id === uiOption}
+                    after={
+                      option.id === uiOption ? <Icon size="100" src={Icons.Check} /> : undefined
+                    }
+                    onClick={() => handleSelect(option.id)}
+                  >
+                    <Text as="span" size="T300" truncate>
+                      {option.label}
+                    </Text>
+                  </MenuItem>
+                ))}
+              </Box>
+            </Menu>
           </FocusTrap>
         }
       />
@@ -320,6 +419,13 @@ function Appearance() {
   return (
     <Box direction="Column" gap="100">
       <Text size="L400">Appearance</Text>
+      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+        <SettingTile
+          title="Layout"
+          description="Auto uses Matrix Android in portrait and Matrix Web in landscape."
+          after={<SelectUiOption />}
+        />
+      </SequenceCard>
       <SequenceCard
         className={SequenceCardStyle}
         variant="SurfaceVariant"
