@@ -13,8 +13,8 @@ export type UiOption = 'auto' | 'matrix' | 'matrix-android';
 
 export const UI_OPTIONS: ReadonlyArray<{ id: UiOption; label: string }> = [
   { id: 'auto', label: 'Auto' },
-  { id: 'matrix', label: 'Matrix (Web)' },
-  { id: 'matrix-android', label: 'Matrix Android' },
+  { id: 'matrix', label: 'Vertical' },
+  { id: 'matrix-android', label: 'Horizontal' },
 ];
 
 export enum MessageLayout {

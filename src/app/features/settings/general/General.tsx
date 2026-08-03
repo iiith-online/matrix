@@ -422,7 +422,7 @@ function Appearance() {
       <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
         <SettingTile
           title="Layout"
-          description="Auto uses Matrix Android in portrait and Matrix Web in landscape."
+          description="Auto uses Horizontal in portrait and Vertical in landscape."
           after={<SelectUiOption />}
         />
       </SequenceCard>
