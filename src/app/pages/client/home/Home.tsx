@@ -1,5 +1,6 @@
 import React, { MouseEventHandler, forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Room } from 'matrix-js-sdk';
 import {
   Box,
   Button,
@@ -193,6 +194,15 @@ const getRoomSpaceName = (
   return names.length > 0 ? names.join(' · ') : undefined;
 };
 
+const getRoomSpace = (
+  mx: ReturnType<typeof useMatrixClient>,
+  roomToParents: Map<string, Set<string>>,
+  roomId: string
+): Room | undefined =>
+  Array.from(roomToParents.get(roomId) ?? [])
+    .map((parentId) => mx.getRoom(parentId))
+    .find((space): space is Room => Boolean(space?.isSpaceRoom()));
+
 export function Home() {
   const mx = useMatrixClient();
   useNavToActivePathMapper('home');
@@ -254,12 +264,14 @@ export function Home() {
     if (!room) return null;
 
     const direct = mDirects.has(roomId);
+    const space = getRoomSpace(mx, roomToParents, roomId);
     return (
       <VirtualTile virtualItem={vItem} key={roomId} ref={recentVirtualizer.measureElement}>
         <RoomNavItem
           room={room}
           selected={selectedRoomId === roomId}
           showAvatar={direct}
+          avatarRoom={space}
           direct={direct}
           spaceName={getRoomSpaceName(mx, roomToParents, roomId)}
           style={{ minHeight: toRem(44) }}

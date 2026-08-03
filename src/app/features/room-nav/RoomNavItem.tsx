@@ -249,6 +249,7 @@ type RoomNavItemProps = {
   linkPath: string;
   notificationMode?: RoomNotificationMode;
   showAvatar?: boolean;
+  avatarRoom?: Room;
   direct?: boolean;
   spaceName?: string;
   style?: CSSProperties;
@@ -298,6 +299,7 @@ export function RoomNavItem({
   room,
   selected,
   showAvatar,
+  avatarRoom,
   direct,
   spaceName,
   style,
@@ -356,6 +358,15 @@ export function RoomNavItem({
   };
 
   const optionsVisible = hover || !!menuAnchor;
+  let avatarSrc: string | undefined;
+  if (avatarRoom) {
+    avatarSrc = getRoomAvatarUrl(mx, avatarRoom, 96, useAuthentication);
+  } else if (direct) {
+    avatarSrc = getDirectRoomAvatarUrl(mx, room, 96, useAuthentication);
+  } else if (showAvatar) {
+    avatarSrc = getRoomAvatarUrl(mx, room, 96, useAuthentication);
+  }
+
   const callSession = useCallSession(room);
   const callMembers = useCallMembers(callSession);
   const startCall = useCallStart(direct);
@@ -412,18 +423,14 @@ export function RoomNavItem({
         <NavItemContent data-ui-option-room-row-content>
           <Box as="span" grow="Yes" alignItems="Center" gap="200">
             <Avatar size="200" radii="400" data-ui-option-room-avatar>
-              {showAvatar ? (
+              {showAvatar || avatarRoom ? (
                 <RoomAvatar
-                  roomId={room.roomId}
-                  src={
-                    direct
-                      ? getDirectRoomAvatarUrl(mx, room, 96, useAuthentication)
-                      : getRoomAvatarUrl(mx, room, 96, useAuthentication)
-                  }
+                  roomId={avatarRoom?.roomId ?? room.roomId}
+                  src={avatarSrc}
                   alt={roomName}
                   renderFallback={() => (
                     <Text as="span" size="H6">
-                      {nameInitials(roomName)}
+                      {nameInitials(avatarRoom?.name ?? roomName)}
                     </Text>
                   )}
                 />
