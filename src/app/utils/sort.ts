@@ -1,4 +1,5 @@
-import { MatrixClient } from 'matrix-js-sdk';
+import { MatrixClient, RelationType, Room } from 'matrix-js-sdk';
+import { MessageEvent } from '../../types/matrix/room';
 
 export type SortFunc<T> = (a: T, b: T) => number;
 
@@ -13,6 +14,34 @@ export const factoryRoomIdByActivity =
       (room1?.getLastActiveTimestamp() ?? Number.MIN_SAFE_INTEGER)
     );
   };
+
+const getLastMessageTimestamp = (room?: Room | null): number => {
+  const events = room?.getLiveTimeline().getEvents() ?? [];
+
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const event = events[i];
+    const eventType = event.getType();
+    const isMessage =
+      eventType === MessageEvent.RoomMessage ||
+      eventType === MessageEvent.RoomMessageEncrypted ||
+      eventType === MessageEvent.Sticker;
+
+    if (
+      isMessage &&
+      !event.isRedacted() &&
+      event.getRelation()?.rel_type !== RelationType.Replace
+    ) {
+      return event.getTs();
+    }
+  }
+
+  return Number.MIN_SAFE_INTEGER;
+};
+
+export const factoryRoomIdByMessageActivity =
+  (mx: MatrixClient): SortFunc<string> =>
+  (a, b) =>
+    getLastMessageTimestamp(mx.getRoom(b)) - getLastMessageTimestamp(mx.getRoom(a));
 
 export const factoryRoomIdByAtoZ =
   (mx: MatrixClient): SortFunc<string> =>

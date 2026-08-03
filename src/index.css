@@ -282,7 +282,8 @@ body[data-ui-option='matrix-android']
     font-weight: 600;
   }
 
-  body[data-ui-option='matrix-android'] [data-ui-option-shell] {
+  body[data-ui-option='matrix-android']
+    [data-ui-option-shell]:has([data-ui-option-mobile-sidebar]) {
     padding-bottom: calc(var(--ui-option-mobile-nav-height) + env(safe-area-inset-bottom, 0px));
   }
 }

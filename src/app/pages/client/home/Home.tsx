@@ -18,7 +18,7 @@ import {
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
 import { useAtom, useAtomValue } from 'jotai';
 import FocusTrap from 'focus-trap-react';
-import { factoryRoomIdByActivity, factoryRoomIdByAtoZ } from '../../../utils/sort';
+import { factoryRoomIdByAtoZ, factoryRoomIdByMessageActivity } from '../../../utils/sort';
 import {
   NavCategory,
   NavCategoryHeader,
@@ -231,7 +231,8 @@ export function Home() {
     !categoryDefaultsApplied.current || closedCategories.has(DEFAULT_CATEGORY_ID);
 
   const sortedRecentRooms = useMemo(
-    () => (recentCategoryClosed ? [] : Array.from(recentRooms).sort(factoryRoomIdByActivity(mx))),
+    () =>
+      recentCategoryClosed ? [] : Array.from(recentRooms).sort(factoryRoomIdByMessageActivity(mx)),
     [mx, recentCategoryClosed, recentRooms]
   );
 

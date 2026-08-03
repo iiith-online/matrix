@@ -14,7 +14,7 @@ import { useRoomName } from '../../hooks/useRoomMeta';
 import { useRoomsUnread } from '../../state/hooks/unread';
 import { roomToUnreadAtom } from '../../state/room/roomToUnread';
 import { Unread } from '../../../types/matrix/room';
-import { factoryRoomIdByActivity } from '../../utils/sort';
+import { factoryRoomIdByMessageActivity } from '../../utils/sort';
 import { getCanonicalAliasOrRoomId } from '../../utils/matrix';
 import { getRoomAvatarUrl } from '../../utils/room';
 import {
@@ -118,7 +118,7 @@ function HomeDashboard() {
     () =>
       rooms
         .filter((roomId) => mx.getRoom(roomId))
-        .sort(factoryRoomIdByActivity(mx))
+        .sort(factoryRoomIdByMessageActivity(mx))
         .slice(0, 6),
     [mx, rooms]
   );
