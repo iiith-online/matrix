@@ -1,13 +1,7 @@
 import { lightTheme } from 'folds';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { onDarkFontWeight, onLightFontWeight } from '../../config.css';
-import {
-  butterTheme,
-  darkTheme,
-  silverTheme,
-  whatsappDarkTheme,
-  whatsappLightTheme,
-} from '../../colors.css';
+import { butterTheme, darkTheme, silverTheme } from '../../colors.css';
 import { settingsAtom } from '../state/settings';
 import { useSetting } from '../state/hooks/settings';
 
@@ -43,22 +37,8 @@ export const ButterTheme: Theme = {
   kind: ThemeKind.Dark,
   classNames: ['butter-theme', butterTheme, onDarkFontWeight, 'prism-dark'],
 };
-export const WhatsAppTheme: Theme = {
-  id: 'whatsapp-theme',
-  kind: ThemeKind.Light,
-  classNames: ['whatsapp-theme', whatsappLightTheme, onLightFontWeight, 'prism-light'],
-};
-export const WhatsAppDarkTheme: Theme = {
-  id: 'whatsapp-dark-theme',
-  kind: ThemeKind.Dark,
-  classNames: ['whatsapp-dark-theme', whatsappDarkTheme, onDarkFontWeight, 'prism-dark'],
-};
-
 export const useThemes = (): Theme[] => {
-  const themes: Theme[] = useMemo(
-    () => [LightTheme, SilverTheme, WhatsAppTheme, DarkTheme, ButterTheme, WhatsAppDarkTheme],
-    []
-  );
+  const themes: Theme[] = useMemo(() => [LightTheme, SilverTheme, DarkTheme, ButterTheme], []);
 
   return themes;
 };
@@ -70,8 +50,6 @@ export const useThemeNames = (): Record<string, string> =>
       [SilverTheme.id]: 'Silver',
       [DarkTheme.id]: 'Dark',
       [ButterTheme.id]: 'Butter',
-      [WhatsAppTheme.id]: 'WhatsApp',
-      [WhatsAppDarkTheme.id]: 'WhatsApp Dark',
     }),
     []
   );

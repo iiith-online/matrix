@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
-  Chip,
   Icon,
   IconButton,
   Icons,
@@ -16,7 +15,7 @@ import {
   toRem,
 } from 'folds';
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import FocusTrap from 'focus-trap-react';
 import { factoryRoomIdByActivity, factoryRoomIdByAtoZ } from '../../../utils/sort';
 import {
@@ -47,7 +46,6 @@ import { useClosedNavCategoriesAtom } from '../../../state/hooks/closedNavCatego
 import { stopPropagation } from '../../../utils/keyboard';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
-import { searchModalAtom } from '../../../state/searchModal';
 import { UIOptionsButton } from '../sidebar/UIOptionsTab';
 import {
   getRoomNotificationMode,
@@ -88,55 +86,9 @@ const HomeMenu = forwardRef<HTMLDivElement, HomeMenuProps>(({ requestClose }, re
   );
 });
 
-type HomeFilter = 'all' | 'direct' | 'spaces';
-
-function HomeFilterBar({
-  filter,
-  onChange,
-}: {
-  filter: HomeFilter;
-  onChange: (filter: HomeFilter) => void;
-}) {
-  const filters: Array<{ id: HomeFilter; label: string }> = [
-    { id: 'all', label: 'All' },
-    { id: 'direct', label: 'Direct' },
-    { id: 'spaces', label: 'Spaces' },
-  ];
-
-  return (
-    <Box
-      data-ui-option-home-filters
-      alignItems="Center"
-      gap="100"
-      style={{ padding: `${config.space.S100} ${config.space.S200} 0` }}
-    >
-      {filters.map((item) => (
-        <Chip
-          key={item.id}
-          data-testid={`home-filter-${item.id}`}
-          variant={item.id === filter ? 'Primary' : 'Secondary'}
-          outlined={item.id === filter}
-          radii="Pill"
-          onClick={() => onChange(item.id)}
-          aria-pressed={item.id === filter}
-        >
-          <Text size="B300">{item.label}</Text>
-        </Chip>
-      ))}
-    </Box>
-  );
-}
-
 function HomeHeader() {
   const [uiOption] = useSetting(settingsAtom, 'uiOption');
   const screenSize = useScreenSizeContext();
-  const setSearchOpen = useSetAtom(searchModalAtom);
-  const isWhatsapp = uiOption === 'whatsapp';
-  const isIos = uiOption === 'matrix-ios';
-  const showUiOptions = screenSize === ScreenSize.Mobile && uiOption !== 'matrix';
-  let title = 'Home';
-  if (isWhatsapp) title = 'Chats';
-  if (isIos) title = 'Messages';
   const [menuAnchor, setMenuAnchor] = useState<RectCords>();
 
   const handleOpenMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
@@ -153,19 +105,10 @@ function HomeHeader() {
         <Box alignItems="Center" grow="Yes" gap="300">
           <Box grow="Yes">
             <Text size="H4" truncate>
-              {title}
+              Home
             </Text>
           </Box>
-          {(isWhatsapp || isIos) && (
-            <IconButton
-              aria-label="Search"
-              variant="Background"
-              onClick={() => setSearchOpen(true)}
-            >
-              <Icon src={Icons.Search} size="200" />
-            </IconButton>
-          )}
-          {showUiOptions && <UIOptionsButton />}
+          {screenSize === ScreenSize.Mobile && uiOption === 'matrix-android' && <UIOptionsButton />}
           <Box>
             <IconButton
               aria-label="Home options"
@@ -264,13 +207,8 @@ export function Home() {
   const mDirects = useAtomValue(mDirectAtom);
   const roomToParents = useAtomValue(roomToParentsAtom);
   const notificationPreferences = useRoomsNotificationPreferencesContext();
-  const [uiOption] = useSetting(settingsAtom, 'uiOption');
-  const [homeFilter, setHomeFilter] = useState<HomeFilter>('all');
 
   const selectedRoomId = useSelectedRoom();
-  const isWhatsapp = uiOption === 'whatsapp';
-  const isMatrixAndroid = uiOption === 'matrix-android';
-  const isMatrixIos = uiOption === 'matrix-ios';
   const noRoomToDisplay = rooms.length === 0 && recentRooms.length === 0;
   const [closedCategories, setClosedCategories] = useAtom(useClosedNavCategoriesAtom());
   const categoryDefaultsApplied = useRef(false);
@@ -297,49 +235,17 @@ export function Home() {
     return Array.from(rooms).sort(factoryRoomIdByAtoZ(mx));
   }, [mx, rooms, roomsCategoryClosed]);
 
-  const conversationRooms = useMemo(
-    () => Array.from(new Set([...rooms, ...recentRooms])).sort(factoryRoomIdByActivity(mx)),
-    [mx, recentRooms, rooms]
-  );
-  const filteredConversationRooms = useMemo(() => {
-    if (!isMatrixAndroid || homeFilter === 'all') return conversationRooms;
-    return conversationRooms.filter((roomId) =>
-      homeFilter === 'direct' ? mDirects.has(roomId) : roomToParents.has(roomId)
-    );
-  }, [conversationRooms, homeFilter, isMatrixAndroid, mDirects, roomToParents]);
-
-  const filteredRooms = useMemo(() => {
-    if (!isMatrixAndroid || homeFilter === 'all') return sortedRooms;
-    return sortedRooms.filter((roomId) =>
-      homeFilter === 'direct' ? mDirects.has(roomId) : roomToParents.has(roomId)
-    );
-  }, [homeFilter, isMatrixAndroid, mDirects, roomToParents, sortedRooms]);
-  const filteredRecentRooms = useMemo(() => {
-    if (!isMatrixAndroid || homeFilter === 'all') return sortedRecentRooms;
-    return sortedRecentRooms.filter((roomId) =>
-      homeFilter === 'direct' ? mDirects.has(roomId) : roomToParents.has(roomId)
-    );
-  }, [homeFilter, isMatrixAndroid, mDirects, roomToParents, sortedRecentRooms]);
-  const recentRoomsForView = filteredRecentRooms;
-
   const recentVirtualizer = useVirtualizer({
-    count: recentRoomsForView.length,
+    count: sortedRecentRooms.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 44,
     overscan: 10,
   });
 
   const virtualizer = useVirtualizer({
-    count: filteredRooms.length,
+    count: sortedRooms.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 38,
-    overscan: 10,
-  });
-
-  const conversationVirtualizer = useVirtualizer({
-    count: filteredConversationRooms.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => (isWhatsapp ? 64 : 52),
     overscan: 10,
   });
 
@@ -347,8 +253,8 @@ export function Home() {
     closedCategories.has(categoryId)
   );
 
-  const renderRecentRoom = (vItem: VirtualItem, whatsappStyle = false) => {
-    const roomId = recentRoomsForView[vItem.index];
+  const renderRecentRoom = (vItem: VirtualItem) => {
+    const roomId = sortedRecentRooms[vItem.index];
     const room = mx.getRoom(roomId);
     if (!room) return null;
 
@@ -358,32 +264,10 @@ export function Home() {
         <RoomNavItem
           room={room}
           selected={selectedRoomId === roomId}
-          showAvatar={whatsappStyle || direct || isMatrixIos}
+          showAvatar={direct}
           direct={direct}
-          spaceName={whatsappStyle ? undefined : getRoomSpaceName(mx, roomToParents, roomId)}
-          style={{ minHeight: toRem(whatsappStyle ? 64 : 44) }}
-          linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
-          notificationMode={getRoomNotificationMode(notificationPreferences, room.roomId)}
-        />
-      </VirtualTile>
-    );
-  };
-
-  const renderConversationRoom = (vItem: VirtualItem) => {
-    const roomId = filteredConversationRooms[vItem.index];
-    const room = mx.getRoom(roomId);
-    if (!room) return null;
-
-    const direct = mDirects.has(roomId);
-    return (
-      <VirtualTile virtualItem={vItem} key={roomId} ref={conversationVirtualizer.measureElement}>
-        <RoomNavItem
-          room={room}
-          selected={selectedRoomId === roomId}
-          showAvatar={isWhatsapp || isMatrixIos || direct}
-          direct={direct}
-          spaceName={isWhatsapp ? undefined : getRoomSpaceName(mx, roomToParents, roomId)}
-          style={{ minHeight: toRem(isWhatsapp ? 64 : 52) }}
+          spaceName={getRoomSpaceName(mx, roomToParents, roomId)}
+          style={{ minHeight: toRem(44) }}
           linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
           notificationMode={getRoomNotificationMode(notificationPreferences, room.roomId)}
         />
@@ -394,29 +278,8 @@ export function Home() {
   return (
     <PageNav>
       <HomeHeader />
-      {isMatrixAndroid && !noRoomToDisplay && (
-        <HomeFilterBar filter={homeFilter} onChange={setHomeFilter} />
-      )}
       {noRoomToDisplay && <HomeEmpty />}
-      {!noRoomToDisplay && (isWhatsapp || isMatrixAndroid) && (
-        <PageNavContent scrollRef={scrollRef}>
-          <Box direction="Column">
-            <NavCategory data-ui-option-conversation-list>
-              <div
-                style={{
-                  position: 'relative',
-                  height: conversationVirtualizer.getTotalSize(),
-                }}
-              >
-                {conversationVirtualizer
-                  .getVirtualItems()
-                  .map((vItem) => renderConversationRoom(vItem))}
-              </div>
-            </NavCategory>
-          </Box>
-        </PageNavContent>
-      )}
-      {!noRoomToDisplay && !isWhatsapp && !isMatrixAndroid && (
+      {!noRoomToDisplay && (
         <PageNavContent scrollRef={scrollRef}>
           <Box direction="Column" gap="300">
             <NavCategory>
@@ -436,7 +299,7 @@ export function Home() {
                 }}
               >
                 {virtualizer.getVirtualItems().map((vItem) => {
-                  const roomId = filteredRooms[vItem.index];
+                  const roomId = sortedRooms[vItem.index];
                   const room = mx.getRoom(roomId);
                   if (!room) return null;
                   const selected = selectedRoomId === roomId;
@@ -450,7 +313,6 @@ export function Home() {
                       <RoomNavItem
                         room={room}
                         selected={selected}
-                        showAvatar={isMatrixIos}
                         linkPath={getHomeRoomPath(getCanonicalAliasOrRoomId(mx, roomId))}
                         notificationMode={getRoomNotificationMode(
                           notificationPreferences,

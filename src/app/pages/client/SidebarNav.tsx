@@ -14,7 +14,6 @@ import {
 import {
   DirectTab,
   HomeTab,
-  RecentTab,
   SpaceTabs,
   InboxTab,
   ExploreTab,
@@ -26,16 +25,8 @@ import {
 import { SyncStatus } from './SyncStatus';
 
 function MobileUiOptionNav() {
-  const [uiOption] = useSetting(settingsAtom, 'uiOption');
-  const middleTab = uiOption === 'matrix-ios' ? <SearchTab /> : <ExploreTab />;
-  const secondTab = uiOption === 'matrix-android' ? <DirectTab /> : <RecentTab />;
-
-  let labels = ['Home', 'Recent', 'Explore', 'Inbox', 'You'];
-  if (uiOption === 'whatsapp') labels = ['Chats', 'Recent', 'Direct', 'Inbox', 'You'];
-  if (uiOption === 'matrix-ios') labels = ['Home', 'Recent', 'Search', 'Inbox', 'You'];
-  if (uiOption === 'matrix-android') labels[1] = 'Direct';
-
-  const tabs = [<HomeTab />, secondTab, middleTab, <InboxTab />, <SettingsTab />];
+  const labels = ['Home', 'Direct', 'Explore', 'Inbox', 'You'];
+  const tabs = [<HomeTab />, <DirectTab />, <ExploreTab />, <InboxTab />, <SettingsTab />];
 
   return (
     <Sidebar data-ui-option-mobile-sidebar>
@@ -68,7 +59,7 @@ export function SidebarNav() {
   const [uiOption] = useSetting(settingsAtom, 'uiOption');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  if (screenSize === ScreenSize.Mobile && uiOption !== 'matrix') {
+  if (screenSize === ScreenSize.Mobile && uiOption === 'matrix-android') {
     return <MobileUiOptionNav />;
   }
 

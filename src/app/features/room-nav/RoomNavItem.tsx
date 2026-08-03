@@ -305,7 +305,6 @@ export function RoomNavItem({
   linkPath,
 }: RoomNavItemProps) {
   const mx = useMatrixClient();
-  const [uiOption] = useSetting(settingsAtom, 'uiOption');
   const useAuthentication = useMediaAuthentication();
   const [hover, setHover] = useState(false);
   const { hoverProps } = useHover({ onHoverChange: setHover });
@@ -393,7 +392,7 @@ export function RoomNavItem({
 
   return (
     <NavItem
-      variant={uiOption === 'whatsapp' || uiOption === 'matrix-ios' ? 'Surface' : 'Background'}
+      variant="Background"
       radii="400"
       highlight={unread !== undefined}
       aria-selected={selected}

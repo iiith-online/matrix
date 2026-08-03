@@ -9,13 +9,11 @@ export type DateFormat =
   | 'YYYY-MM-DD'
   | '';
 export type MessageSpacing = '0' | '100' | '200' | '300' | '400' | '500';
-export type UiOption = 'matrix' | 'whatsapp' | 'matrix-android' | 'matrix-ios';
+export type UiOption = 'matrix' | 'matrix-android';
 
 export const UI_OPTIONS: ReadonlyArray<{ id: UiOption; label: string }> = [
   { id: 'matrix', label: 'Matrix (Web)' },
-  { id: 'whatsapp', label: 'WhatsApp' },
   { id: 'matrix-android', label: 'Matrix Android' },
-  { id: 'matrix-ios', label: 'Matrix iOS' },
 ];
 
 export enum MessageLayout {
@@ -105,9 +103,13 @@ const defaultSettings: Settings = {
 export const getSettings = () => {
   const settings = localStorage.getItem(STORAGE_KEY);
   if (settings === null) return defaultSettings;
+  const savedSettings = JSON.parse(settings) as Partial<Settings>;
+  const uiOption: UiOption =
+    savedSettings.uiOption === 'matrix-android' ? 'matrix-android' : 'matrix';
   return {
     ...defaultSettings,
-    ...(JSON.parse(settings) as Settings),
+    ...savedSettings,
+    uiOption,
   };
 };
 

@@ -13,14 +13,7 @@ import {
   toRem,
 } from 'folds';
 import FocusTrap from 'focus-trap-react';
-import {
-  DarkTheme,
-  LightTheme,
-  ThemeKind,
-  useActiveTheme,
-  WhatsAppDarkTheme,
-  WhatsAppTheme,
-} from '../../../hooks/useTheme';
+import { DarkTheme, LightTheme, ThemeKind, useActiveTheme } from '../../../hooks/useTheme';
 import { ScreenSize, useScreenSizeContext } from '../../../hooks/useScreenSize';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom, UI_OPTIONS, UiOption } from '../../../state/settings';
@@ -58,10 +51,6 @@ const UIOptionsMenu = forwardRef<HTMLDivElement, UIOptionsMenuProps>(
 );
 
 const getThemeIdForOption = (option: UiOption, themeKind: ThemeKind) => {
-  if (option === 'whatsapp') {
-    return themeKind === ThemeKind.Dark ? WhatsAppDarkTheme.id : WhatsAppTheme.id;
-  }
-  if (option === 'matrix-ios') return LightTheme.id;
   if (option === 'matrix-android') return DarkTheme.id;
   return themeKind === ThemeKind.Dark ? DarkTheme.id : LightTheme.id;
 };

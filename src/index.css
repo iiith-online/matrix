@@ -93,19 +93,9 @@ body[data-ui-option='matrix'] {
   --ui-option-page-nav-width: 256px;
 }
 
-body[data-ui-option='whatsapp'] {
-  --ui-option-sidebar-width: 72px;
-  --ui-option-page-nav-width: 300px;
-}
-
 body[data-ui-option='matrix-android'] {
   --ui-option-sidebar-width: 70px;
   --ui-option-page-nav-width: 244px;
-}
-
-body[data-ui-option='matrix-ios'] {
-  --ui-option-sidebar-width: 76px;
-  --ui-option-page-nav-width: 288px;
 }
 
 body[data-ui-option] [data-ui-option-sidebar] {
@@ -116,59 +106,11 @@ body[data-ui-option] [data-ui-option-page-nav] {
   width: var(--ui-option-page-nav-width);
 }
 
-body[data-ui-option='whatsapp'] [data-ui-option-page-header] {
-  min-height: 64px;
-  padding-left: 20px;
-  padding-right: 16px;
-  border-bottom-width: 0;
-}
-
 body[data-ui-option='matrix-android'] [data-ui-option-page-header] {
   min-height: 56px;
   padding-left: 16px;
   padding-right: 12px;
   border-bottom-width: 0;
-}
-
-body[data-ui-option='matrix-ios'] [data-ui-option-page-root] {
-  gap: 8px;
-}
-
-body[data-ui-option='matrix-ios'] [data-ui-option-page-nav] {
-  margin: 8px 0 8px 8px;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-body[data-ui-option='matrix-ios'] [data-ui-option-page-header] {
-  min-height: 72px;
-  padding-left: 20px;
-  padding-right: 16px;
-  border-bottom-width: 0;
-}
-
-body[data-ui-option='whatsapp'] [data-ui-option-page-content] {
-  padding: 0;
-}
-
-body[data-ui-option='whatsapp'] [data-ui-option-room-row] {
-  min-height: 64px;
-  border-radius: 0;
-  box-shadow: inset 0 -1px 0 color-mix(in srgb, currentColor 10%, transparent);
-}
-
-body[data-ui-option='whatsapp'] [data-ui-option-room-row-content] {
-  padding-left: 12px;
-  padding-right: 16px;
-}
-
-body[data-ui-option='whatsapp'] [data-ui-option-room-avatar] {
-  width: 40px;
-  height: 40px;
-}
-
-body[data-ui-option='whatsapp'] [data-ui-option-conversation-list] {
-  padding-bottom: 16px;
 }
 
 body[data-ui-option='matrix-android'] [data-ui-option-page-content] {
@@ -191,40 +133,8 @@ body[data-ui-option='matrix-android'] [data-ui-option-room-avatar] {
   height: 32px;
 }
 
-body[data-ui-option='matrix-android'] [data-ui-option-home-filters] {
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-body[data-ui-option='matrix-android'] [data-ui-option-home-filters]::-webkit-scrollbar {
-  display: none;
-}
-
-body[data-ui-option='matrix-ios'] [data-ui-option-page-content] {
-  padding-top: 16px;
-}
-
-body[data-ui-option='matrix-ios'] [data-ui-option-room-row] {
-  min-height: 60px;
-  margin-bottom: 4px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px color-mix(in srgb, currentColor 8%, transparent);
-}
-
-body[data-ui-option='matrix-ios'] [data-ui-option-room-row-content] {
-  padding-left: 12px;
-  padding-right: 12px;
-}
-
-body[data-ui-option='matrix-ios'] [data-ui-option-room-avatar] {
-  width: 36px;
-  height: 36px;
-}
-
 @media (max-width: 749px) {
-  body[data-ui-option='whatsapp'] [data-ui-option-mobile-sidebar],
-  body[data-ui-option='matrix-android'] [data-ui-option-mobile-sidebar],
-  body[data-ui-option='matrix-ios'] [data-ui-option-mobile-sidebar] {
+  body[data-ui-option='matrix-android'] [data-ui-option-mobile-sidebar] {
     position: fixed;
     z-index: 5;
     right: 0;
@@ -236,9 +146,7 @@ body[data-ui-option='matrix-ios'] [data-ui-option-room-avatar] {
     border-right: 0;
   }
 
-  body[data-ui-option='whatsapp'] [data-ui-option-mobile-nav],
-  body[data-ui-option='matrix-android'] [data-ui-option-mobile-nav],
-  body[data-ui-option='matrix-ios'] [data-ui-option-mobile-nav] {
+  body[data-ui-option='matrix-android'] [data-ui-option-mobile-nav] {
     width: 100%;
     height: 100%;
     flex-direction: row;
@@ -247,36 +155,26 @@ body[data-ui-option='matrix-ios'] [data-ui-option-room-avatar] {
     padding: 0 8px;
   }
 
-  body[data-ui-option='whatsapp'] [data-ui-option-mobile-nav] > *,
-  body[data-ui-option='matrix-android'] [data-ui-option-mobile-nav] > *,
-  body[data-ui-option='matrix-ios'] [data-ui-option-mobile-nav] > * {
+  body[data-ui-option='matrix-android'] [data-ui-option-mobile-nav] > * {
     flex: 1;
     min-width: 0;
   }
 
-  body[data-ui-option='whatsapp'] [data-ui-option-mobile-tab],
-  body[data-ui-option='matrix-android'] [data-ui-option-mobile-tab],
-  body[data-ui-option='matrix-ios'] [data-ui-option-mobile-tab] {
+  body[data-ui-option='matrix-android'] [data-ui-option-mobile-tab] {
     min-width: 0;
     overflow: hidden;
     text-align: center;
   }
 
-  body[data-ui-option='whatsapp'] [data-ui-option-mobile-tab] > :first-child,
-  body[data-ui-option='matrix-android'] [data-ui-option-mobile-tab] > :first-child,
-  body[data-ui-option='matrix-ios'] [data-ui-option-mobile-tab] > :first-child {
+  body[data-ui-option='matrix-android'] [data-ui-option-mobile-tab] > :first-child {
     min-width: 0;
   }
 
-  body[data-ui-option='whatsapp'] [data-ui-option-mobile-tab] > :first-child::before,
-  body[data-ui-option='matrix-android'] [data-ui-option-mobile-tab] > :first-child::before,
-  body[data-ui-option='matrix-ios'] [data-ui-option-mobile-tab] > :first-child::before {
+  body[data-ui-option='matrix-android'] [data-ui-option-mobile-tab] > :first-child::before {
     display: none;
   }
 
-  body[data-ui-option='whatsapp'] [data-ui-option-shell],
-  body[data-ui-option='matrix-android'] [data-ui-option-shell],
-  body[data-ui-option='matrix-ios'] [data-ui-option-shell] {
+  body[data-ui-option='matrix-android'] [data-ui-option-shell] {
     padding-bottom: 64px;
   }
 }
