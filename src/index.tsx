@@ -2,6 +2,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Analytics, type BeforeSendEvent } from '@vercel/analytics/react';
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { enableMapSet } from 'immer';
 import '@fontsource/inter/variable.css';
 import 'folds/dist/style.css';
@@ -70,6 +71,7 @@ const mountApp = () => {
         mode={import.meta.env.PROD ? 'production' : 'development'}
         beforeSend={redactAnalyticsEvent}
       />
+      <SpeedInsights />
     </>
   );
 };

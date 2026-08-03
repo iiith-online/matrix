@@ -70,7 +70,7 @@ export function Devices({ requestClose }: DevicesProps) {
         <Box grow="Yes" gap="200">
           <Box grow="Yes" alignItems="Center" gap="200">
             <Text size="H3" truncate>
-              Devices
+              Security & Devices
             </Text>
           </Box>
           <Box shrink="No">

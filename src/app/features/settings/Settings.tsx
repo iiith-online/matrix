@@ -64,8 +64,8 @@ const useSettingsMenuItems = (): SettingsMenuItem[] =>
       },
       {
         page: SettingsPages.DevicesPage,
-        name: 'Devices',
-        icon: Icons.Monitor,
+        name: 'Security & Devices',
+        icon: Icons.ShieldUser,
       },
     ],
     []
