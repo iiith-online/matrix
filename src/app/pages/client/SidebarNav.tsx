@@ -30,7 +30,7 @@ function MobileUiOptionNav() {
 
   return (
     <Sidebar data-ui-option-mobile-sidebar>
-      <SidebarStack data-ui-option-mobile-nav>
+      <SidebarStack data-ui-option-mobile-nav role="navigation" aria-label="Primary navigation">
         {tabs.map((tab, index) => (
           <Box
             key={labels[index]}
@@ -43,7 +43,7 @@ function MobileUiOptionNav() {
             shrink="Yes"
           >
             {tab}
-            <Text size="T200" priority="400" truncate>
+            <Text data-ui-option-mobile-tab-label size="T200" priority="400" truncate>
               {labels[index]}
             </Text>
           </Box>

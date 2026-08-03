@@ -155,7 +155,7 @@ export function UIOptionsButton() {
           variant="Background"
           onClick={onClick}
         >
-          <Icon src={Icons.Bulb} size="200" />
+          <Icon src={Icons.Setting} size="200" />
         </IconButton>
       )}
     </UIOptionsControl>

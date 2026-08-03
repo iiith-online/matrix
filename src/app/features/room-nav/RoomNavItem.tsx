@@ -444,7 +444,7 @@ export function RoomNavItem({
                 {roomName}
               </Text>
               {previewLine && (
-                <Text as="span" size="T200" priority="400" truncate>
+                <Text as="span" data-ui-option-room-preview size="T200" priority="400" truncate>
                   {previewLine}
                 </Text>
               )}
