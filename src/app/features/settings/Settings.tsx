@@ -8,15 +8,25 @@ import {
   IconButton,
   Icons,
   IconSrc,
+  Line,
   MenuItem,
   Overlay,
   OverlayBackdrop,
   OverlayCenter,
+  Scroll,
   Text,
 } from 'folds';
 import FocusTrap from 'focus-trap-react';
-import { General } from './general';
-import { PageNav, PageNavContent, PageNavHeader, PageRoot } from '../../components/page';
+import { General, Options, Source } from './general';
+import {
+  Page,
+  PageContent,
+  PageHeader,
+  PageNav,
+  PageNavContent,
+  PageNavHeader,
+  PageRoot,
+} from '../../components/page';
 import { ScreenSize, useScreenSizeContext } from '../../hooks/useScreenSize';
 import { Account } from './account';
 import { useUserProfile } from '../../hooks/useUserProfile';
@@ -36,6 +46,8 @@ export enum SettingsPages {
   AccountPage,
   NotificationPage,
   DevicesPage,
+  OptionsPage,
+  SourcePage,
 }
 
 type SettingsMenuItem = {
@@ -71,6 +83,96 @@ const useSettingsMenuItems = (): SettingsMenuItem[] =>
     []
   );
 
+const useSettingsUtilityItems = (): SettingsMenuItem[] =>
+  useMemo(
+    () => [
+      {
+        page: SettingsPages.OptionsPage,
+        name: 'Options',
+        icon: Icons.Setting,
+      },
+      {
+        page: SettingsPages.SourcePage,
+        name: 'Source',
+        icon: Icons.Info,
+      },
+    ],
+    []
+  );
+
+function SettingsMenuItems({
+  items,
+  activePage,
+  onSelect,
+}: {
+  items: SettingsMenuItem[];
+  activePage: SettingsPages | undefined;
+  onSelect: (page: SettingsPages) => void;
+}) {
+  return (
+    <>
+      {items.map((item) => (
+        <MenuItem
+          key={item.name}
+          variant="Background"
+          radii="400"
+          aria-pressed={activePage === item.page}
+          before={<Icon src={item.icon} size="100" filled={activePage === item.page} />}
+          onClick={() => onSelect(item.page)}
+        >
+          <Text
+            style={{
+              fontWeight: activePage === item.page ? config.fontWeight.W600 : undefined,
+            }}
+            size="T300"
+            truncate
+          >
+            {item.name}
+          </Text>
+        </MenuItem>
+      ))}
+    </>
+  );
+}
+
+function StandalonePage({
+  title,
+  requestClose,
+  children,
+}: {
+  title: string;
+  requestClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Page>
+      <PageHeader outlined={false}>
+        <Box grow="Yes" gap="200">
+          <Box grow="Yes" alignItems="Center" gap="200">
+            <Text size="H3" truncate>
+              {title}
+            </Text>
+          </Box>
+          <Box shrink="No">
+            <IconButton onClick={requestClose} variant="Surface">
+              <Icon src={Icons.Cross} />
+            </IconButton>
+          </Box>
+        </Box>
+      </PageHeader>
+      <Box grow="Yes">
+        <Scroll hideTrack visibility="Hover">
+          <PageContent>
+            <Box direction="Column" gap="700">
+              {children}
+            </Box>
+          </PageContent>
+        </Scroll>
+      </Box>
+    </Page>
+  );
+}
+
 type SettingsProps = {
   initialPage?: SettingsPages;
   requestClose: () => void;
@@ -91,6 +193,7 @@ export function Settings({ initialPage, requestClose }: SettingsProps) {
     return screenSize === ScreenSize.Mobile ? undefined : SettingsPages.GeneralPage;
   });
   const menuItems = useSettingsMenuItems();
+  const utilityItems = useSettingsUtilityItems();
 
   const handlePageRequestClose = () => {
     if (screenSize === ScreenSize.Mobile) {
@@ -133,26 +236,17 @@ export function Settings({ initialPage, requestClose }: SettingsProps) {
             <Box grow="Yes" direction="Column">
               <PageNavContent>
                 <div style={{ flexGrow: 1 }}>
-                  {menuItems.map((item) => (
-                    <MenuItem
-                      key={item.name}
-                      variant="Background"
-                      radii="400"
-                      aria-pressed={activePage === item.page}
-                      before={<Icon src={item.icon} size="100" filled={activePage === item.page} />}
-                      onClick={() => setActivePage(item.page)}
-                    >
-                      <Text
-                        style={{
-                          fontWeight: activePage === item.page ? config.fontWeight.W600 : undefined,
-                        }}
-                        size="T300"
-                        truncate
-                      >
-                        {item.name}
-                      </Text>
-                    </MenuItem>
-                  ))}
+                  <SettingsMenuItems
+                    items={menuItems}
+                    activePage={activePage}
+                    onSelect={setActivePage}
+                  />
+                  <Line variant="Surface" size="300" />
+                  <SettingsMenuItems
+                    items={utilityItems}
+                    activePage={activePage}
+                    onSelect={setActivePage}
+                  />
                 </div>
               </PageNavContent>
               <Box style={{ padding: config.space.S200 }} shrink="No" direction="Column">
@@ -204,6 +298,16 @@ export function Settings({ initialPage, requestClose }: SettingsProps) {
       )}
       {activePage === SettingsPages.DevicesPage && (
         <Devices requestClose={handlePageRequestClose} />
+      )}
+      {activePage === SettingsPages.OptionsPage && (
+        <StandalonePage title="Options" requestClose={handlePageRequestClose}>
+          <Options />
+        </StandalonePage>
+      )}
+      {activePage === SettingsPages.SourcePage && (
+        <StandalonePage title="Source" requestClose={handlePageRequestClose}>
+          <Source />
+        </StandalonePage>
       )}
     </PageRoot>
   );

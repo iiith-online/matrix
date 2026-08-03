@@ -999,7 +999,7 @@ function InstallAppSetting() {
   );
 }
 
-function Options() {
+export function Options() {
   const mx = useMatrixClient();
   const [checkingForUpdate, setCheckingForUpdate] = useState(false);
   const [updateCheckFailed, setUpdateCheckFailed] = useState(false);
@@ -1016,81 +1016,75 @@ function Options() {
   };
 
   return (
-    <Box direction="Column" gap="100">
-      <Text size="L400">Options</Text>
-      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
-        <SettingTile
-          title="App updates"
-          description={
-            <span aria-live="polite">
-              Check for a newer version and reload the app.
-              {updateCheckFailed && (
-                <Text as="span" style={{ color: color.Critical.Main }} size="T200">
-                  {' '}
-                  Could not check for updates. Try again.
-                </Text>
-              )}
-            </span>
-          }
-          after={
-            <Button
-              onClick={handleCheckForUpdates}
-              variant="Secondary"
-              fill="Soft"
-              size="300"
-              radii="300"
-              outlined
-              disabled={checkingForUpdate}
-            >
-              <Text size="B300">{checkingForUpdate ? 'Checking…' : 'Check & Reload'}</Text>
-            </Button>
-          }
-        />
-        <SettingTile
-          title="Clear Cache & Reload"
-          description="Clear all your locally stored data and reload from server."
-          after={
-            <Button
-              onClick={() => clearCacheAndReload(mx)}
-              variant="Secondary"
-              fill="Soft"
-              size="300"
-              radii="300"
-              outlined
-            >
-              <Text size="B300">Clear Cache</Text>
-            </Button>
-          }
-        />
-        <InstallAppSetting />
-      </SequenceCard>
-    </Box>
+    <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+      <SettingTile
+        title="App updates"
+        description={
+          <span aria-live="polite">
+            Check for a newer version and reload the app.
+            {updateCheckFailed && (
+              <Text as="span" style={{ color: color.Critical.Main }} size="T200">
+                {' '}
+                Could not check for updates. Try again.
+              </Text>
+            )}
+          </span>
+        }
+        after={
+          <Button
+            onClick={handleCheckForUpdates}
+            variant="Secondary"
+            fill="Soft"
+            size="300"
+            radii="300"
+            outlined
+            disabled={checkingForUpdate}
+          >
+            <Text size="B300">{checkingForUpdate ? 'Checking…' : 'Check & Reload'}</Text>
+          </Button>
+        }
+      />
+      <SettingTile
+        title="Clear Cache & Reload"
+        description="Clear all your locally stored data and reload from server."
+        after={
+          <Button
+            onClick={() => clearCacheAndReload(mx)}
+            variant="Secondary"
+            fill="Soft"
+            size="300"
+            radii="300"
+            outlined
+          >
+            <Text size="B300">Clear Cache</Text>
+          </Button>
+        }
+      />
+      <InstallAppSetting />
+    </SequenceCard>
   );
 }
 
-function Source() {
+export function Source() {
   return (
-    <Box direction="Column" gap="100">
-      <Text size="L400">Source</Text>
-      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
-        <SettingTile
-          title="Repository"
-          description={
-            <a
-              href="https://github.com/iiith-online/matrix"
-              rel="noreferrer noopener"
-              target="_blank"
-            >
-              github.com/iiith-online/matrix
-            </a>
-          }
-        />
-        <SettingTile
-          title="License"
-          description="GNU Affero General Public License v3.0 (AGPL-3.0-only)"
-        />
-      </SequenceCard>
-    </Box>
+    <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+      <SettingTile
+        title="Repository"
+        description={
+          <a
+            href="https://github.com/iiith-online/matrix"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            github.com/iiith-online/matrix
+          </a>
+        }
+      />
+      <SettingTile
+        title="License"
+        description="GNU Affero General Public License v3.0 (AGPL-3.0-only)"
+      />
+    </SequenceCard>
   );
 }
 
@@ -1132,8 +1126,6 @@ export function General({ requestClose }: GeneralProps) {
               <Messages />
               <TogglesContent />
               <EmojisStickersContent onViewPack={setImagePack} />
-              <Options />
-              <Source />
             </Box>
           </PageContent>
         </Scroll>
