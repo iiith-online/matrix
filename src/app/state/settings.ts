@@ -63,7 +63,7 @@ export interface Settings {
 }
 
 const defaultSettings: Settings = {
-  uiOption: 'auto',
+  uiOption: 'matrix',
   themeId: undefined,
   useSystemTheme: true,
   lightThemeId: undefined,
@@ -110,7 +110,7 @@ export const getSettings = () => {
     savedSettings.uiOption === 'matrix' ||
     savedSettings.uiOption === 'matrix-android'
       ? savedSettings.uiOption
-      : 'auto';
+      : 'matrix';
   return {
     ...defaultSettings,
     ...savedSettings,
