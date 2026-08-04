@@ -39,6 +39,8 @@ export const HOME_ROOM_PATH = `/home/${_ROOM_PATH}`;
 export const RECENT_PATH = '/recent/';
 export const RECENT_ROOM_PATH = `/recent/${_ROOM_PATH}`;
 
+export const THREADS_PATH = '/threads/';
+
 export const DIRECT_PATH = '/direct/';
 export type DirectCreateSearchParams = {
   userId?: string;

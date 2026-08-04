@@ -18,6 +18,7 @@ import {
   ROOT_PATH,
   RECENT_PATH,
   RECENT_ROOM_PATH,
+  THREADS_PATH,
   SPACE_LOBBY_PATH,
   SPACE_PATH,
   SPACE_ROOM_PATH,
@@ -99,6 +100,8 @@ export const getRecentRoomPath = (roomIdOrAlias: string, eventId?: string): stri
 
   return generatePath(RECENT_ROOM_PATH, params);
 };
+
+export const getThreadsPath = (): string => THREADS_PATH;
 
 export const getDirectPath = (): string => DIRECT_PATH;
 export const getDirectCreatePath = (): string => DIRECT_CREATE_PATH;

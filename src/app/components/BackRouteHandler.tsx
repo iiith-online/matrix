@@ -14,6 +14,7 @@ import {
   INBOX_PATH,
   RECENT_PATH,
   SPACE_PATH,
+  THREADS_PATH,
 } from '../pages/paths';
 
 type BackRouteHandlerProps = {
@@ -24,6 +25,7 @@ export const getBackPath = (pathname: string): string | undefined => {
   if (matchPath({ path: HOME_PATH, caseSensitive: true, end: true }, pathname)) return undefined;
   if (matchPath({ path: RECENT_PATH, caseSensitive: true, end: true }, pathname)) return undefined;
   if (matchPath({ path: DIRECT_PATH, caseSensitive: true, end: true }, pathname)) return undefined;
+  if (matchPath({ path: THREADS_PATH, caseSensitive: true, end: true }, pathname)) return undefined;
   if (matchPath({ path: INBOX_PATH, caseSensitive: true, end: true }, pathname)) return undefined;
 
   if (matchPath({ path: HOME_PATH, caseSensitive: true, end: false }, pathname)) {

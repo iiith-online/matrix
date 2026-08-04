@@ -27,6 +27,7 @@ import {
   _SEARCH_PATH,
   CREATE_PATH,
   ROOT_PATH,
+  THREADS_PATH,
 } from './paths';
 import {
   getAppPathFromHref,
@@ -68,6 +69,7 @@ import { CreateSpaceModalRenderer } from '../features/create-space';
 import { SearchModalRenderer } from '../features/search';
 import { getFallbackSession } from '../state/sessions';
 import { CallStatusRenderer } from './CallStatusRenderer';
+import { Threads } from './client/threads';
 
 const CallEmbedProvider = lazy(() =>
   import('../components/CallEmbedProvider').then((module) => ({
@@ -188,6 +190,14 @@ export const createRouter = (clientConfig: ClientConfig, screenSize: ScreenSize)
             }
           />
         </Route>
+        <Route
+          path={THREADS_PATH}
+          element={
+            <PageRoot nav={null}>
+              <Threads />
+            </PageRoot>
+          }
+        />
         <Route
           path={HOME_PATH}
           element={

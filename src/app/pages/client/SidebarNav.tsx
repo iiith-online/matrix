@@ -19,12 +19,20 @@ import {
   SettingsTab,
   UnverifiedTab,
   SearchTab,
+  ThreadsTab,
 } from './sidebar';
 import { SyncStatus } from './SyncStatus';
 
 function MobileUiOptionNav() {
-  const labels = ['Home', 'Direct', 'Explore', 'Inbox', 'You'];
-  const tabs = [<HomeTab />, <DirectTab />, <ExploreTab />, <InboxTab />, <SettingsTab />];
+  const labels = ['Home', 'Direct', 'Threads', 'Explore', 'Inbox', 'You'];
+  const tabs = [
+    <HomeTab />,
+    <DirectTab />,
+    <ThreadsTab />,
+    <ExploreTab />,
+    <InboxTab />,
+    <SettingsTab />,
+  ];
 
   return (
     <Sidebar data-ui-option-mobile-sidebar>
@@ -69,6 +77,7 @@ export function SidebarNav() {
             <SidebarStack>
               <HomeTab />
               <DirectTab />
+              <ThreadsTab />
             </SidebarStack>
             <SpaceTabs scrollRef={scrollRef} />
             <SidebarStackSeparator />
