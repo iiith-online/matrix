@@ -40,8 +40,8 @@ import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-sc
 import { combine } from '@atlaskit/pragmatic-drag-and-drop/combine';
 import FocusTrap from 'focus-trap-react';
 import {
-  useOrphanSpaces,
   useRecursiveChildScopeFactory,
+  useSpaces,
   useSpaceChildren,
 } from '../../../state/hooks/roomList';
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
@@ -70,7 +70,6 @@ import {
   TSidebarItem,
   makeMatrixIIITSpacesContent,
   parseSidebar,
-  sidebarItemWithout,
   useSidebarItems,
 } from '../../../hooks/useSidebarItems';
 import { AccountDataEvent } from '../../../../types/matrix/accountData';
@@ -625,9 +624,8 @@ export function SpaceTabs({ scrollRef }: SpaceTabsProps) {
   const navigate = useNavigate();
   const mx = useMatrixClient();
   const screenSize = useScreenSizeContext();
-  const roomToParents = useAtomValue(roomToParentsAtom);
-  const orphanSpaces = useOrphanSpaces(mx, allRoomsAtom, roomToParents);
-  const [sidebarItems, localEchoSidebarItem] = useSidebarItems(orphanSpaces);
+  const allSpaces = useSpaces(mx, allRoomsAtom);
+  const [sidebarItems, localEchoSidebarItem] = useSidebarItems(allSpaces);
   const navToActivePath = useAtomValue(useNavToActivePathAtom());
   const [openedFolder, setOpenedFolder] = useAtom(useOpenedSidebarFolderAtom());
   const [draggingItem, setDraggingItem] = useState<SidebarDraggable>();
@@ -758,10 +756,10 @@ export function SpaceTabs({ scrollRef }: SpaceTabsProps) {
         });
 
         const newSpacesContent = makeMatrixIIITSpacesContent(mx, newItems);
-        localEchoSidebarItem(parseSidebar(mx, orphanSpaces, newSpacesContent));
+        localEchoSidebarItem(parseSidebar(mx, allSpaces, newSpacesContent));
         mx.setAccountData(AccountDataEvent.MatrixIIITSpaces as any, newSpacesContent as any);
       },
-      [mx, sidebarItems, setOpenedFolder, localEchoSidebarItem, orphanSpaces]
+      [mx, sidebarItems, setOpenedFolder, localEchoSidebarItem, allSpaces]
     )
   );
 
@@ -798,18 +796,6 @@ export function SpaceTabs({ scrollRef }: SpaceTabsProps) {
     });
   };
 
-  const handleUnpin = useCallback(
-    (roomId: string) => {
-      if (orphanSpaces.includes(roomId)) return;
-      const newItems = sidebarItemWithout(sidebarItems, roomId);
-
-      const newSpacesContent = makeMatrixIIITSpacesContent(mx, newItems);
-      localEchoSidebarItem(parseSidebar(mx, orphanSpaces, newSpacesContent));
-      mx.setAccountData(AccountDataEvent.MatrixIIITSpaces as any, newSpacesContent as any);
-    },
-    [mx, sidebarItems, orphanSpaces, localEchoSidebarItem]
-  );
-
   if (sidebarItems.length === 0) return null;
   return (
     <>
@@ -836,7 +822,6 @@ export function SpaceTabs({ scrollRef }: SpaceTabsProps) {
                             ? draggingItem.spaceId === space.roomId
                             : false
                         }
-                        onUnpin={orphanSpaces.includes(space.roomId) ? undefined : handleUnpin}
                       />
                     );
                   })}
@@ -869,7 +854,6 @@ export function SpaceTabs({ scrollRef }: SpaceTabsProps) {
               onClick={handleSpaceClick}
               onDragging={setDraggingItem}
               disabled={typeof draggingItem === 'string' ? draggingItem === space.roomId : false}
-              onUnpin={orphanSpaces.includes(space.roomId) ? undefined : handleUnpin}
             />
           );
         })}

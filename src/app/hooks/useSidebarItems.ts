@@ -21,11 +21,11 @@ export type InMatrixIIITSpacesContent = {
 
 export const parseSidebar = (
   mx: MatrixClient,
-  orphanSpaces: string[],
+  availableSpaces: string[],
   content?: InMatrixIIITSpacesContent
 ) => {
   const sidebar = content?.sidebar ?? content?.shortcut ?? [];
-  const orphans = new Set(orphanSpaces);
+  const missingSpaces = new Set(availableSpaces);
 
   const items: SidebarItems = [];
 
@@ -39,7 +39,7 @@ export const parseSidebar = (
   sidebar.forEach((item) => {
     if (typeof item === 'string') {
       if (safeToAdd(item) && !items.includes(item)) {
-        orphans.delete(item);
+        missingSpaces.delete(item);
         items.push(item);
       }
       return;
@@ -51,7 +51,7 @@ export const parseSidebar = (
       !items.find((i) => (typeof i === 'string' ? false : i.id === item.id))
     ) {
       const safeContent = item.content.filter(safeToAdd);
-      safeContent.forEach((i) => orphans.delete(i));
+      safeContent.forEach((i) => missingSpaces.delete(i));
       items.push({
         ...item,
         content: Array.from(new Set(safeContent)),
@@ -59,12 +59,12 @@ export const parseSidebar = (
     }
   });
 
-  orphans.forEach((spaceId) => items.push(spaceId));
+  missingSpaces.forEach((spaceId) => items.push(spaceId));
   return items;
 };
 
 export const useSidebarItems = (
-  orphanSpaces: string[]
+  availableSpaces: string[]
 ): [SidebarItems, Dispatch<SetStateAction<SidebarItems>>] => {
   const mx = useMatrixClient();
 
@@ -73,7 +73,7 @@ export const useSidebarItems = (
       mx,
       AccountDataEvent.MatrixIIITSpaces
     )?.getContent<InMatrixIIITSpacesContent>();
-    return parseSidebar(mx, orphanSpaces, inMatrixIIITSpacesContent);
+    return parseSidebar(mx, availableSpaces, inMatrixIIITSpacesContent);
   });
 
   useEffect(() => {
@@ -81,8 +81,8 @@ export const useSidebarItems = (
       mx,
       AccountDataEvent.MatrixIIITSpaces
     )?.getContent<InMatrixIIITSpacesContent>();
-    setSidebarItems(parseSidebar(mx, orphanSpaces, inMatrixIIITSpacesContent));
-  }, [mx, orphanSpaces]);
+    setSidebarItems(parseSidebar(mx, availableSpaces, inMatrixIIITSpacesContent));
+  }, [mx, availableSpaces]);
 
   useAccountDataCallback(
     mx,
@@ -90,10 +90,10 @@ export const useSidebarItems = (
       (mEvent) => {
         if (mEvent.getType() === AccountDataEvent.MatrixIIITSpaces) {
           const newContent = mEvent.getContent<InMatrixIIITSpacesContent>();
-          setSidebarItems(parseSidebar(mx, orphanSpaces, newContent));
+          setSidebarItems(parseSidebar(mx, availableSpaces, newContent));
         }
       },
-      [mx, orphanSpaces]
+      [mx, availableSpaces]
     )
   );
 
